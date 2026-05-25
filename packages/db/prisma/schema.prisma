@@ -104,9 +104,11 @@ model ShopItem {
   description String?
   price       Int
   currency    String       @default("DR")
-  imageUrl    String?
-  itemVnum    Int?         // Metin2 Item VNUM
-  enabled     Boolean      @default(true)
+  imageUrl       String?
+  itemVnum       Int?         // Metin2 Item VNUM
+  itemTemplateId String?
+  itemTemplate   ItemTemplate? @relation(fields: [itemTemplateId], references: [id])
+  enabled        Boolean      @default(true)
   categoryId  String
   category    ShopCategory @relation(fields: [categoryId], references: [id])
   createdAt   DateTime     @default(now())
@@ -139,4 +141,96 @@ model ServerStatus {
   updatedAt   DateTime @updatedAt
 
   @@map("server_status")
+}
+
+// ============================================================
+// Item System
+// ============================================================
+enum ItemGrade {
+  NORMAL
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+model ItemTemplate {
+  id          String   @id @default(cuid())
+  vnum        Int      @unique
+  name        String
+  description String?  @db.Text
+  iconUrl     String?
+  itemType    String
+  grade       ItemGrade @default(NORMAL)
+  attributes  Json?
+  enabled     Boolean  @default(true)
+  
+  shopItems   ShopItem[]
+  storageItems WebStorageItem[]
+  transfers   ItemTransfer[]
+  adminGrants AdminItemGrant[]
+
+  @@map("item_templates")
+}
+
+model WebStorage {
+  id          String   @id @default(cuid())
+  accountId   Int      @unique
+  maxSlots    Int      @default(200)
+  items       WebStorageItem[]
+  transfers   ItemTransfer[]
+
+  @@map("web_storage")
+}
+
+model WebStorageItem {
+  id             String   @id @default(cuid())
+  storageId      String
+  storage        WebStorage @relation(fields: [storageId], references: [id], onDelete: Cascade)
+  templateId     String
+  template       ItemTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  slot           Int
+  count          Int      @default(1)
+  enchants       Json?
+
+  @@unique([storageId, slot])
+  @@map("web_storage_items")
+}
+
+enum TransferStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  ROLLED_BACK
+}
+
+model ItemTransfer {
+  id             String   @id @default(cuid())
+  storageId      String
+  storage        WebStorage @relation(fields: [storageId], references: [id], onDelete: Cascade)
+  itemTemplateId String
+  itemTemplate   ItemTemplate @relation(fields: [itemTemplateId], references: [id], onDelete: Restrict)
+  count          Int      @default(1)
+  enchants       Json?
+  status         TransferStatus @default(PENDING)
+  errorMsg       String?  @db.Text
+  requestedAt    DateTime @default(now())
+  processedAt    DateTime?
+
+  @@index([status])
+  @@index([storageId])
+  @@map("item_transfers")
+}
+
+model AdminItemGrant {
+  id             String   @id @default(cuid())
+  adminId        String
+  accountId      Int
+  itemTemplateId String
+  itemTemplate   ItemTemplate @relation(fields: [itemTemplateId], references: [id], onDelete: Restrict)
+  count          Int      @default(1)
+  note           String?  @db.Text
+  grantedAt      DateTime @default(now())
+
+  @@map("admin_item_grants")
 }

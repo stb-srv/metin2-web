@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Puzzle, Paintbrush, FileText, Menu, X, LogOut, ArrowLeft } from "lucide-react"
+import { LayoutDashboard, Puzzle, Paintbrush, FileText, Menu, X, LogOut, ArrowLeft, Sword } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { signOut } from "next-auth/react"
 
@@ -17,6 +17,7 @@ const navItems = [
   { name: "Module", href: "/modules", icon: Puzzle },
   { name: "Themes", href: "/themes", icon: Paintbrush },
   { name: "News", href: "/news", icon: FileText },
+  { name: "Items", href: "/items", icon: Sword },
 ]
 
 export function AdminSidebar({ serverName, className }: AdminSidebarProps) {
