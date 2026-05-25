@@ -1,0 +1,30 @@
+{
+  "id": "metin2-fire",
+  "name": "Metin2 Fire",
+  "description": "Feuriges Rot-Orange Design für aggressive Server",
+  "author": "stb-srv",
+  "version": "1.0.0",
+  "colors": {
+    "--color-primary": "#e05a3a",
+    "--color-bg": "#0f0a08",
+    "--color-surface": "#1a1008",
+    "--color-surface-2": "#2a1a0a",
+    "--color-accent": "#f59e0b",
+    "--color-danger": "#ef4444",
+    "--color-success": "#4caf50",
+    "--color-warning": "#f59e0b",
+    "--color-text": "#f0e0d0",
+    "--color-text-muted": "#8b6b5b",
+    "--color-border": "rgba(224,90,58,0.3)",
+    "--color-glow": "rgba(224,90,58,0.15)"
+  },
+  "fonts": {
+    "--font-display": "'Cinzel', serif",
+    "--font-body": "'Inter', sans-serif"
+  },
+  "borderRadius": {
+    "--radius-sm": "4px",
+    "--radius-md": "8px",
+    "--radius-lg": "12px"
+  }
+}

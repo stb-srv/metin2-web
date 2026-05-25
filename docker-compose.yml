@@ -1,0 +1,44 @@
+# Metin2 Web CMS — Docker Compose für lokale Entwicklung
+version: '3.9'
+
+services:
+  # MySQL Datenbank
+  db:
+    image: mysql:8.0
+    container_name: metin2_cms_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${CMS_DB_NAME:-metin2_cms}
+      MYSQL_USER: ${CMS_DB_USER:-cms_user}
+      MYSQL_PASSWORD: ${CMS_DB_PASSWORD:-cmspassword}
+    ports:
+      - '3306:3306'
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  # Next.js App
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: metin2_cms_web
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      CMS_DATABASE_URL: mysql://${CMS_DB_USER:-cms_user}:${CMS_DB_PASSWORD:-cmspassword}@db:3306/${CMS_DB_NAME:-metin2_cms}
+      GAME_DATABASE_URL: ${GAME_DATABASE_URL}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  db_data:

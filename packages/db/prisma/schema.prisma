@@ -1,0 +1,142 @@
+// Metin2 CMS — Prisma Schema
+// Datenbank: metin2_cms (wird automatisch von install.sh angelegt)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("CMS_DATABASE_URL")
+}
+
+// ============================================================
+// Module
+// ============================================================
+model Module {
+  id          String   @id @default(cuid())
+  name        String
+  enabled     Boolean  @default(true)
+  order       Int      @default(0)
+  config      Json?    // Modul-spezifische Einstellungen
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("modules")
+}
+
+// ============================================================
+// Themes
+// ============================================================
+model Theme {
+  id          String   @id
+  name        String
+  isDefault   Boolean  @default(false)
+  config      String   @db.LongText // JSON mit CSS-Variablen
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("themes")
+}
+
+// ============================================================
+// Users (Admin-Panel)
+// ============================================================
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  password    String
+  role        Role     @default(USER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("users")
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+// ============================================================
+// News / Announcements
+// ============================================================
+model News {
+  id          String     @id @default(cuid())
+  title       String
+  content     String     @db.LongText
+  excerpt     String?
+  published   Boolean    @default(false)
+  pinned      Boolean    @default(false)
+  category    NewsCategory @default(NEWS)
+  authorId    String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("news")
+}
+
+enum NewsCategory {
+  NEWS
+  UPDATE
+  EVENT
+  MAINTENANCE
+}
+
+// ============================================================
+// Item Shop
+// ============================================================
+model ShopCategory {
+  id          String     @id @default(cuid())
+  name        String
+  icon        String?
+  order       Int        @default(0)
+  items       ShopItem[]
+
+  @@map("shop_categories")
+}
+
+model ShopItem {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  price       Int
+  currency    String       @default("DR")
+  imageUrl    String?
+  itemVnum    Int?         // Metin2 Item VNUM
+  enabled     Boolean      @default(true)
+  categoryId  String
+  category    ShopCategory @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("shop_items")
+}
+
+// ============================================================
+// Einstellungen
+// ============================================================
+model Setting {
+  key         String   @id
+  value       String   @db.Text
+  updatedAt   DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// ============================================================
+// Server-Status (gecacht)
+// ============================================================
+model ServerStatus {
+  id          String   @id @default(cuid())
+  channel     String
+  online      Boolean  @default(false)
+  players     Int      @default(0)
+  maxPlayers  Int      @default(0)
+  load        String   @default("LOW") // LOW | MEDIUM | HIGH
+  updatedAt   DateTime @updatedAt
+
+  @@map("server_status")
+}
