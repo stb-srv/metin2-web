@@ -14,13 +14,13 @@ datasource db {
 // Module
 // ============================================================
 model Module {
-  id          String   @id @default(cuid())
-  name        String
-  enabled     Boolean  @default(true)
-  order       Int      @default(0)
-  config      Json?    // Modul-spezifische Einstellungen
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  name      String
+  enabled   Boolean  @default(true)
+  order     Int      @default(0)
+  config    Json? // Modul-spezifische Einstellungen
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("modules")
 }
@@ -29,12 +29,12 @@ model Module {
 // Themes
 // ============================================================
 model Theme {
-  id          String   @id
-  name        String
-  isDefault   Boolean  @default(false)
-  config      String   @db.LongText // JSON mit CSS-Variablen
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id
+  name      String
+  isDefault Boolean  @default(false)
+  config    String   @db.LongText // JSON mit CSS-Variablen
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("themes")
 }
@@ -43,13 +43,14 @@ model Theme {
 // Users (Admin-Panel)
 // ============================================================
 model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  name        String?
-  password    String
-  role        Role     @default(USER)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  accountId Int?     @unique
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
@@ -64,16 +65,16 @@ enum Role {
 // News / Announcements
 // ============================================================
 model News {
-  id          String     @id @default(cuid())
-  title       String
-  content     String     @db.LongText
-  excerpt     String?
-  published   Boolean    @default(false)
-  pinned      Boolean    @default(false)
-  category    NewsCategory @default(NEWS)
-  authorId    String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id        String       @id @default(cuid())
+  title     String
+  content   String       @db.LongText
+  excerpt   String?
+  published Boolean      @default(false)
+  pinned    Boolean      @default(false)
+  category  NewsCategory @default(NEWS)
+  authorId  String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   @@map("news")
 }
@@ -89,30 +90,30 @@ enum NewsCategory {
 // Item Shop
 // ============================================================
 model ShopCategory {
-  id          String     @id @default(cuid())
-  name        String
-  icon        String?
-  order       Int        @default(0)
-  items       ShopItem[]
+  id    String     @id @default(cuid())
+  name  String
+  icon  String?
+  order Int        @default(0)
+  items ShopItem[]
 
   @@map("shop_categories")
 }
 
 model ShopItem {
-  id          String       @id @default(cuid())
-  name        String
-  description String?
-  price       Int
-  currency    String       @default("DR")
+  id             String        @id @default(cuid())
+  name           String
+  description    String?
+  price          Int
+  currency       String        @default("DR")
   imageUrl       String?
-  itemVnum       Int?         // Metin2 Item VNUM
+  itemVnum       Int? // Metin2 Item VNUM
   itemTemplateId String?
   itemTemplate   ItemTemplate? @relation(fields: [itemTemplateId], references: [id])
-  enabled        Boolean      @default(true)
-  categoryId  String
-  category    ShopCategory @relation(fields: [categoryId], references: [id])
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  enabled        Boolean       @default(true)
+  categoryId     String
+  category       ShopCategory  @relation(fields: [categoryId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@map("shop_items")
 }
@@ -121,9 +122,9 @@ model ShopItem {
 // Einstellungen
 // ============================================================
 model Setting {
-  key         String   @id
-  value       String   @db.Text
-  updatedAt   DateTime @updatedAt
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
 
   @@map("settings")
 }
@@ -132,13 +133,13 @@ model Setting {
 // Server-Status (gecacht)
 // ============================================================
 model ServerStatus {
-  id          String   @id @default(cuid())
-  channel     String
-  online      Boolean  @default(false)
-  players     Int      @default(0)
-  maxPlayers  Int      @default(0)
-  load        String   @default("LOW") // LOW | MEDIUM | HIGH
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  channel    String
+  online     Boolean  @default(false)
+  players    Int      @default(0)
+  maxPlayers Int      @default(0)
+  load       String   @default("LOW") // LOW | MEDIUM | HIGH
+  updatedAt  DateTime @updatedAt
 
   @@map("server_status")
 }
@@ -154,43 +155,45 @@ enum ItemGrade {
 }
 
 model ItemTemplate {
-  id          String   @id @default(cuid())
-  vnum        Int      @unique
+  id          String    @id @default(cuid())
+  vnum        Int       @unique
   name        String
-  description String?  @db.Text
+  description String?   @db.Text
   iconUrl     String?
   itemType    String
   grade       ItemGrade @default(NORMAL)
   attributes  Json?
-  enabled     Boolean  @default(true)
-  
-  shopItems   ShopItem[]
+  enabled     Boolean   @default(true)
+
+  shopItems    ShopItem[]
   storageItems WebStorageItem[]
-  transfers   ItemTransfer[]
-  adminGrants AdminItemGrant[]
+  transfers    ItemTransfer[]
+  adminGrants  AdminItemGrant[]
+  trashedItems WebStorageTrash[]
 
   @@map("item_templates")
 }
 
 model WebStorage {
-  id          String   @id @default(cuid())
-  accountId   Int      @unique
-  maxSlots    Int      @default(200)
-  items       WebStorageItem[]
-  transfers   ItemTransfer[]
+  id        String            @id @default(cuid())
+  accountId Int               @unique
+  maxSlots  Int               @default(1000)
+  items     WebStorageItem[]
+  transfers ItemTransfer[]
+  trash     WebStorageTrash[]
 
   @@map("web_storage")
 }
 
 model WebStorageItem {
-  id             String   @id @default(cuid())
-  storageId      String
-  storage        WebStorage @relation(fields: [storageId], references: [id], onDelete: Cascade)
-  templateId     String
-  template       ItemTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
-  slot           Int
-  count          Int      @default(1)
-  enchants       Json?
+  id         String       @id @default(cuid())
+  storageId  String
+  storage    WebStorage   @relation(fields: [storageId], references: [id], onDelete: Cascade)
+  templateId String
+  template   ItemTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  slot       Int
+  count      Int          @default(1)
+  enchants   Json?
 
   @@unique([storageId, slot])
   @@map("web_storage_items")
@@ -205,16 +208,16 @@ enum TransferStatus {
 }
 
 model ItemTransfer {
-  id             String   @id @default(cuid())
+  id             String         @id @default(cuid())
   storageId      String
-  storage        WebStorage @relation(fields: [storageId], references: [id], onDelete: Cascade)
+  storage        WebStorage     @relation(fields: [storageId], references: [id], onDelete: Cascade)
   itemTemplateId String
-  itemTemplate   ItemTemplate @relation(fields: [itemTemplateId], references: [id], onDelete: Restrict)
-  count          Int      @default(1)
+  itemTemplate   ItemTemplate   @relation(fields: [itemTemplateId], references: [id], onDelete: Restrict)
+  count          Int            @default(1)
   enchants       Json?
   status         TransferStatus @default(PENDING)
-  errorMsg       String?  @db.Text
-  requestedAt    DateTime @default(now())
+  errorMsg       String?        @db.Text
+  requestedAt    DateTime       @default(now())
   processedAt    DateTime?
 
   @@index([status])
@@ -223,14 +226,29 @@ model ItemTransfer {
 }
 
 model AdminItemGrant {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   adminId        String
   accountId      Int
   itemTemplateId String
   itemTemplate   ItemTemplate @relation(fields: [itemTemplateId], references: [id], onDelete: Restrict)
-  count          Int      @default(1)
-  note           String?  @db.Text
-  grantedAt      DateTime @default(now())
+  count          Int          @default(1)
+  destination    String       @default("web")
+  note           String?      @db.Text
+  grantedAt      DateTime     @default(now())
 
   @@map("admin_item_grants")
+}
+
+model WebStorageTrash {
+  id         String       @id @default(cuid())
+  storageId  String
+  storage    WebStorage   @relation(fields: [storageId], references: [id], onDelete: Cascade)
+  templateId String
+  template   ItemTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  count      Int          @default(1)
+  enchants   Json?
+  deletedAt  DateTime     @default(now())
+  expiresAt  DateTime
+
+  @@map("web_storage_trash")
 }
