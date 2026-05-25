@@ -1,9 +1,8 @@
-import type { ModuleConfig } from '../../lib/module-loader'
+import { ModuleConfig } from "@/lib/module-loader"
 
-export const moduleConfig: ModuleConfig = {
-  id: 'rankings',
-  name: 'Player Rankings',
+export const rankingsConfig: ModuleConfig = {
+  id: "rankings",
+  name: "Rangliste",
   enabled: true,
-  version: '1.0.0',
-  fallback: 'Rankings vorübergehend nicht verfügbar',
+  version: "1.0.0",
 }
