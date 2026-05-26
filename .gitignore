@@ -16,6 +16,9 @@ build/
 # Prisma
 prisma/migrations/
 
+# TypeScript build cache
+*.tsbuildinfo
+
 # OS
 .DS_Store
 Thumbs.db

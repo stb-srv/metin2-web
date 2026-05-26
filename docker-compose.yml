@@ -1,5 +1,4 @@
-# Metin2 Web CMS — Docker Compose für lokale Entwicklung
-version: '3.9'
+# Metin2 Web CMS — Docker Compose
 
 services:
   # MySQL Datenbank
@@ -18,8 +17,13 @@ services:
       - db_data:/var/lib/mysql
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Next.js App
+  # Next.js App (nur für Production - lokal npm run dev nutzen)
   web:
     build:
       context: .
@@ -27,7 +31,8 @@ services:
     container_name: metin2_cms_web
     restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       CMS_DATABASE_URL: mysql://${CMS_DB_USER:-cms_user}:${CMS_DB_PASSWORD:-cmspassword}@db:3306/${CMS_DB_NAME:-metin2_cms}
       GAME_DATABASE_URL: ${GAME_DATABASE_URL}
