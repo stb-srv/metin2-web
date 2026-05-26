@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cmsDb } from "@/lib/cms-db"
 import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { z } from "zod"
 
 const patchSchema = z.object({
@@ -9,10 +10,10 @@ const patchSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
     if (!session) {
       return new NextResponse("Unauthorized", { status: 401 })
     }
@@ -23,7 +24,7 @@ export async function PATCH(
       return new NextResponse("Invalid payload", { status: 400 })
     }
 
-    const { id } = params
+    const { id } = await params
 
     const updated = await cmsDb.module.update({
       where: { id },

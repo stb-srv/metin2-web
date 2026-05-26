@@ -2,9 +2,10 @@ import { cmsDb } from "@/lib/cms-db"
 import { NewsForm } from "../NewsForm"
 import { notFound } from "next/navigation"
 
-export default async function EditNewsPage({ params }: { params: { id: string } }) {
+export default async function EditNewsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const news = await cmsDb.news.findUnique({
-    where: { id: params.id }
+    where: { id }
   })
 
   if (!news) notFound()

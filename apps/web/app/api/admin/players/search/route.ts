@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { authOptions } from "../../../auth/[...nextauth]/route"
+import { authOptions } from "@/lib/auth"
 import { gameDb } from "@/lib/game-db"
 import { z } from "zod"
 
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
       LIMIT ${limit}
     `
 
-    const guildIds = [...new Set(characters.map(c => c.guild_id).filter(id => id > 0))]
+    const guildIds = Array.from(new Set(characters.map(c => c.guild_id).filter(id => id > 0)))
     let guildsMap = new Map<number, string>()
     if (guildIds.length > 0) {
        for (const gid of guildIds) {

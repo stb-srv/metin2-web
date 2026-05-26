@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cmsDb } from "@/lib/cms-db"
 import { getServerSession } from "next-auth"
-import { authOptions } from "../../../../auth/[...nextauth]/route"
+import { authOptions } from "@/lib/auth"
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -14,8 +14,9 @@ export async function DELETE(
     }
     const accountId = session.user.accountId
 
+    const { id } = await params
     const item = await cmsDb.webStorageItem.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { storage: true }
     })
 

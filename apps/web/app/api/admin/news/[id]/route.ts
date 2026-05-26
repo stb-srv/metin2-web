@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cmsDb } from "@/lib/cms-db"
 import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { z } from "zod"
 
 const newsSchema = z.object({
@@ -14,18 +15,19 @@ const newsSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
 
     const body = await req.json()
     const parsed = newsSchema.safeParse(body)
     if (!parsed.success) return NextResponse.json({ error: "Invalid data" }, { status: 400 })
 
+    const { id } = await params
     const news = await cmsDb.news.update({
-      where: { id: params.id },
+      where: { id },
       data: parsed.data
     })
 
@@ -38,14 +40,15 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
 
+    const { id } = await params
     await cmsDb.news.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     return NextResponse.json({ success: true })

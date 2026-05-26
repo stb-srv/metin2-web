@@ -1,15 +1,20 @@
 import { ReactNode } from "react"
 import { redirect } from "next/navigation"
 import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { AdminSidebar } from "@/components/admin/AdminSidebar"
 import { cmsDb } from "@/lib/cms-db"
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const session = await getServerSession()
+  const session = await getServerSession(authOptions)
   
   // Strict Session Guard
-  if (!session || (session.user as any)?.role !== 'ADMIN') {
+  if (!session) {
     redirect("/login")
+  }
+
+  if (session.user.role !== 'ADMIN') {
+    redirect("/dashboard")
   }
 
   let serverName = "Metin2 Admin"

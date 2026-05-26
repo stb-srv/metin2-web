@@ -36,9 +36,9 @@ export async function GET(req: NextRequest) {
       LIMIT 50
     `
     
-    let players = []
+    let players: any[] = []
     try {
-      players = await gameDb.$queryRawUnsafe(query)
+      players = await gameDb.$queryRawUnsafe<any[]>(query)
     } catch (dbError) {
       console.warn('GameDB access error, using fallback data:', dbError)
       // Fallback data for UI testing if the database is not seeded/connected yet

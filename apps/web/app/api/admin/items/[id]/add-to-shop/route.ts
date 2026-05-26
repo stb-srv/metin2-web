@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cmsDb } from "@/lib/cms-db"
 import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { z } from "zod"
 
 const shopItemSchema = z.object({
@@ -11,11 +12,11 @@ const shopItemSchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession()
-    if (!session || (session.user as any)?.role !== 'ADMIN') return new NextResponse("Unauthorized", { status: 401 })
+    const session = await getServerSession(authOptions)
+    if (!session || session.user.role !== 'ADMIN') return new NextResponse("Unauthorized", { status: 401 })
 
     const body = await req.json()
     const parsed = shopItemSchema.safeParse(body)
@@ -24,8 +25,10 @@ export async function POST(
       return NextResponse.json({ error: "Invalid data", details: parsed.error }, { status: 400 })
     }
 
+    const { id } = await params
+
     const itemTemplate = await cmsDb.itemTemplate.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!itemTemplate) {
@@ -33,7 +36,7 @@ export async function POST(
     }
 
     const existingShopItem = await cmsDb.shopItem.findFirst({
-      where: { itemTemplateId: params.id }
+      where: { itemTemplateId: id }
     })
 
     if (existingShopItem) {

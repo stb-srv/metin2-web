@@ -13,11 +13,11 @@ interface AdminSidebarProps {
 }
 
 const navItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Module", href: "/modules", icon: Puzzle },
-  { name: "Themes", href: "/themes", icon: Paintbrush },
-  { name: "News", href: "/news", icon: FileText },
-  { name: "Items", href: "/items", icon: Sword },
+  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { name: "Module", href: "/admin/modules", icon: Puzzle },
+  { name: "Themes", href: "/admin/themes", icon: Paintbrush },
+  { name: "News", href: "/admin/news", icon: FileText },
+  { name: "Items", href: "/admin/items", icon: Sword },
 ]
 
 export function AdminSidebar({ serverName, className }: AdminSidebarProps) {

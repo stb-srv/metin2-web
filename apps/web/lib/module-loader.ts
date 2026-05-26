@@ -49,7 +49,7 @@ export function createModuleWrapper(
 interface ErrorBoundaryProps {
   moduleId: string
   fallback?: string
-  children: React.ReactNode
+  children?: React.ReactNode
 }
 
 interface ErrorBoundaryState {

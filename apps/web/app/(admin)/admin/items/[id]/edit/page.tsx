@@ -2,9 +2,10 @@ import { cmsDb } from "@/lib/cms-db"
 import { ItemForm } from "../../ItemForm"
 import { notFound } from "next/navigation"
 
-export default async function EditItemPage({ params }: { params: { id: string } }) {
+export default async function EditItemPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const item = await cmsDb.itemTemplate.findUnique({
-    where: { id: params.id }
+    where: { id }
   })
 
   if (!item) notFound()
