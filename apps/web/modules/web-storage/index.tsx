@@ -4,12 +4,15 @@ import { useState, useEffect } from "react"
 import { webStorageConfig } from "./module.config"
 import { StorageGrid } from "./components/StorageGrid"
 import { TrashGrid } from "./components/TrashGrid"
+import { TransferHistory } from "./components/TransferHistory"
 import { AlertCircle } from "lucide-react"
 
 export default function WebStorageModule() {
-  const [activeTab, setActiveTab] = useState<"storage" | "trash">("storage")
+  const [activeTab, setActiveTab] = useState<"storage" | "trash" | "history">("storage")
   const [storageData, setStorageData] = useState<any>(null)
   const [trashData, setTrashData] = useState<any[]>([])
+  const [transfers, setTransfers] = useState<any[]>([])
+  const [loadingTransfers, setLoadingTransfers] = useState(false)
 
   const fetchStorage = async () => {
     const res = await fetch("/api/modules/web-storage")
@@ -21,9 +24,23 @@ export default function WebStorageModule() {
     if (res.ok) setTrashData(await res.json())
   }
 
+  const fetchTransfers = async () => {
+    setLoadingTransfers(true)
+    const res = await fetch("/api/storage/transfer/history")
+    if (res.ok) setTransfers(await res.json())
+    setLoadingTransfers(false)
+  }
+
+  const handleUpdateAll = () => {
+    fetchStorage()
+    fetchTrash()
+    fetchTransfers()
+  }
+
   useEffect(() => {
     fetchStorage()
     fetchTrash()
+    fetchTransfers()
   }, [])
 
   if (!webStorageConfig.enabled) return null
@@ -57,6 +74,12 @@ export default function WebStorageModule() {
           >
             Papierkorb ({trashItemsCount}/{maxTrashSlots})
           </button>
+          <button
+            onClick={() => setActiveTab("history")}
+            className={`px-4 py-2 font-display uppercase tracking-widest text-sm transition-colors ${activeTab === "history" ? "text-primary border-b-2 border-primary" : "text-muted hover:text-text"}`}
+          >
+            Verlauf ({transfers.length})
+          </button>
         </div>
       </div>
 
@@ -74,7 +97,7 @@ export default function WebStorageModule() {
           </div>
           <StorageGrid 
             storage={storageData} 
-            onUpdate={() => { fetchStorage(); fetchTrash(); }} 
+            onUpdate={handleUpdateAll} 
           />
         </div>
       )}
@@ -86,7 +109,17 @@ export default function WebStorageModule() {
           </div>
           <TrashGrid 
             trashItems={trashData} 
-            onUpdate={() => { fetchStorage(); fetchTrash(); }} 
+            onUpdate={handleUpdateAll} 
+          />
+        </div>
+      )}
+
+      {activeTab === "history" && (
+        <div className="flex-1 flex flex-col gap-2 min-h-0">
+          <TransferHistory 
+            transfers={transfers}
+            loading={loadingTransfers}
+            onRefresh={fetchTransfers}
           />
         </div>
       )}

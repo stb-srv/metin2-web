@@ -27,6 +27,46 @@ export function StorageGrid({ storage, onUpdate }: { storage: any, onUpdate: () 
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
   const [hoveredItem, setHoveredItem] = useState<{ item: any, x: number, y: number } | null>(null)
 
+  const [transferItem, setTransferItem] = useState<any | null>(null)
+  const [transferCount, setTransferCount] = useState<number>(1)
+  const [transferring, setTransferring] = useState<boolean>(false)
+  const [transferError, setTransferError] = useState<string | null>(null)
+
+  const handleItemClick = (item: any) => {
+    setTransferItem(item)
+    setTransferCount(item.count)
+    setTransferError(null)
+  }
+
+  const executeTransfer = async () => {
+    if (!transferItem) return
+    setTransferring(true)
+    setTransferError(null)
+
+    try {
+      const res = await fetch("/api/storage/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storageItemId: transferItem.id,
+          count: transferCount
+        })
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setTransferItem(null)
+        onUpdate()
+      } else {
+        setTransferError(data.error || "Ein unbekannter Fehler ist aufgetreten.")
+      }
+    } catch (err) {
+      setTransferError("Netzwerkfehler beim Senden des Transfers.")
+    } finally {
+      setTransferring(false)
+    }
+  }
+
   const handleDragStart = (e: React.DragEvent, itemId: string) => {
     setDraggedItemId(itemId)
     e.dataTransfer.effectAllowed = "move"
@@ -103,6 +143,7 @@ export function StorageGrid({ storage, onUpdate }: { storage: any, onUpdate: () 
                         draggable
                         onDragStart={(e) => handleDragStart(e, item.id)}
                         onContextMenu={(e) => handleContextMenu(e, item)}
+                        onClick={() => handleItemClick(item)}
                         onMouseEnter={(e) => setHoveredItem({ item, x: e.clientX, y: e.clientY })}
                         onMouseMove={(e) => setHoveredItem({ item, x: e.clientX, y: e.clientY })}
                         onMouseLeave={() => setHoveredItem(null)}
@@ -133,6 +174,78 @@ export function StorageGrid({ storage, onUpdate }: { storage: any, onUpdate: () 
         })}
       </div>
       {hoveredItem && <ItemTooltip item={hoveredItem.item} x={hoveredItem.x} y={hoveredItem.y} />}
+
+      {transferItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-surface border border-border rounded-lg shadow-[0_0_30px_var(--color-glow)] p-6 max-w-sm w-full mx-4 flex flex-col gap-4 animate-scale-in text-text">
+            <div>
+              <h3 className="font-display text-xl text-primary tracking-wider uppercase border-b border-border pb-2">
+                Ins Ingame-Lager senden
+              </h3>
+            </div>
+            
+            <div className="flex items-center gap-4 bg-surface-2/40 p-3 rounded-md border border-border/20">
+              <div className="hex-icon w-12 h-12 flex items-center justify-center">
+                {transferItem.template.iconUrl ? (
+                  <img src={transferItem.template.iconUrl} alt={transferItem.template.name} className="w-8 h-8 object-contain" />
+                ) : (
+                  <span className="text-[10px] text-muted">{transferItem.template.vnum}</span>
+                )}
+              </div>
+              <div>
+                <div className="font-display text-text uppercase tracking-wide text-sm">{transferItem.template.name}</div>
+                <div className="text-muted text-xs">Im Web-Lager vorhanden: {transferItem.count}</div>
+              </div>
+            </div>
+
+            {transferError && (
+              <div className="bg-danger/10 border border-danger/30 text-danger text-xs p-2 rounded-md">
+                {transferError}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="transfer-count" className="text-xs text-muted font-medium">
+                Anzahl zu transferieren:
+              </label>
+              <input
+                id="transfer-count"
+                type="number"
+                min={1}
+                max={transferItem.count}
+                value={transferCount}
+                onChange={(e) => setTransferCount(Math.min(transferItem.count, Math.max(1, parseInt(e.target.value) || 1)))}
+                disabled={transferring}
+                className="bg-surface-2 border border-border rounded px-3 py-2 text-text text-sm focus:outline-none focus:border-primary disabled:opacity-50"
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end mt-2">
+              <button
+                onClick={() => setTransferItem(null)}
+                disabled={transferring}
+                className="px-4 py-2 border border-border rounded text-xs hover:bg-surface-2 transition-colors text-muted hover:text-text disabled:opacity-50"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={executeTransfer}
+                disabled={transferring || transferCount < 1 || transferCount > transferItem.count}
+                className="px-4 py-2 bg-primary hover:bg-primary/95 text-bg font-semibold rounded text-xs transition-colors flex items-center gap-1.5 disabled:opacity-50 shadow-[0_0_10px_rgba(200,168,75,0.2)]"
+              >
+                {transferring ? (
+                  <>
+                    <span className="w-3 h-3 rounded-full border-2 border-bg border-t-transparent animate-spin inline-block" />
+                    Sende...
+                  </>
+                ) : (
+                  "Transferieren"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
