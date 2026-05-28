@@ -1,14 +1,12 @@
 "use client"
 
 import React, { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 
 export default function DeleteCodeForm() {
   const [currentDeleteCode, setCurrentDeleteCode] = useState("")
   const [newDeleteCode, setNewDeleteCode] = useState("")
   const [newDeleteCodeConfirm, setNewDeleteCodeConfirm] = useState("")
-  
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -47,79 +45,101 @@ export default function DeleteCodeForm() {
         setNewDeleteCode("")
         setNewDeleteCodeConfirm("")
       }
-    } catch (err) {
+    } catch {
       setError("Verbindung zum Server fehlgeschlagen.")
     } finally {
       setLoading(false)
     }
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: "100%", background: "#0f1014",
+    border: "1px solid var(--color-border)",
+    borderRadius: 4, padding: "10px 14px",
+    color: "var(--color-text)", fontFamily: "var(--font-body)",
+    fontSize: "0.875rem", outline: "none", transition: "border-color 0.15s",
+  }
+
   return (
-    <Card className="bg-surface border-border/30 shadow-[0_0_20px_var(--color-glow)]">
-      <CardHeader className="border-b border-border/20 pb-4">
-        <CardTitle className="font-display text-lg text-primary uppercase tracking-wider">Löschcode ändern</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div style={{
+      background: "var(--color-surface)", border: "1px solid var(--color-border)",
+      borderRadius: 6, overflow: "hidden",
+    }}>
+      <div className="section-header px-5 py-3" style={{
+        background: "var(--color-surface-2)", borderBottom: "2px solid var(--color-primary)",
+        fontSize: "0.85rem",
+      }}>
+        Löschcode ändern
+      </div>
+      <div style={{ padding: "20px 24px" }}>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {error && (
-            <div className="bg-danger/10 border border-danger/30 text-danger text-xs p-3 rounded">
+            <div style={{
+              padding: "10px 12px", borderRadius: 4,
+              background: "rgba(231,76,60,0.08)", border: "1px solid rgba(231,76,60,0.3)",
+              color: "var(--color-danger)", fontFamily: "var(--font-display)", fontSize: "0.78rem",
+            }}>
               {error}
             </div>
           )}
           {success && (
-            <div className="bg-success/10 border border-success/30 text-success text-xs p-3 rounded">
+            <div style={{
+              padding: "10px 12px", borderRadius: 4,
+              background: "rgba(46,204,113,0.08)", border: "1px solid rgba(46,204,113,0.3)",
+              color: "var(--color-success)", fontFamily: "var(--font-display)", fontSize: "0.78rem",
+            }}>
               {success}
             </div>
           )}
 
-          <div className="space-y-1">
-            <label className="text-xs text-text-muted font-display uppercase tracking-wider">Aktueller Löschcode</label>
-            <input
-              type="text"
-              maxLength={7}
-              placeholder="7 Ziffern"
-              value={currentDeleteCode}
-              onChange={(e) => setCurrentDeleteCode(e.target.value.replace(/\D/g, ''))}
-              className="w-full bg-surface-2 border border-border/25 rounded px-3 py-2 text-sm text-text focus:outline-none focus:border-primary/50 transition-colors"
-              required
-            />
-          </div>
+          {[
+            { label: "Aktueller Löschcode", val: currentDeleteCode, setter: setCurrentDeleteCode },
+            { label: "Neuer Löschcode",     val: newDeleteCode,     setter: setNewDeleteCode },
+            { label: "Löschcode bestätigen",val: newDeleteCodeConfirm, setter: setNewDeleteCodeConfirm },
+          ].map(({ label, val, setter }) => (
+            <div key={label}>
+              <label style={{
+                display: "block", marginBottom: 6,
+                fontFamily: "var(--font-display)", fontSize: "0.7rem",
+                color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em",
+              }}>{label}</label>
+              <input
+                type="text"
+                maxLength={7}
+                placeholder="7 Ziffern"
+                value={val}
+                onChange={e => setter(e.target.value.replace(/\D/g, ""))}
+                style={inputStyle}
+                onFocus={e => { e.currentTarget.style.borderColor = "var(--color-primary)" }}
+                onBlur={e => { e.currentTarget.style.borderColor = "var(--color-border)" }}
+                required
+              />
+            </div>
+          ))}
 
-          <div className="space-y-1">
-            <label className="text-xs text-text-muted font-display uppercase tracking-wider">Neuer Löschcode</label>
-            <input
-              type="text"
-              maxLength={7}
-              placeholder="z.B. 1234567"
-              value={newDeleteCode}
-              onChange={(e) => setNewDeleteCode(e.target.value.replace(/\D/g, ''))}
-              className="w-full bg-surface-2 border border-border/25 rounded px-3 py-2 text-sm text-text focus:outline-none focus:border-primary/50 transition-colors"
-              required
-            />
-          </div>
+          <p style={{
+            fontFamily: "var(--font-body)", fontSize: "0.72rem",
+            color: "var(--color-text-muted)", marginTop: 2,
+          }}>
+            ℹ️ 7-stellige Zahl — zum Löschen von Charakteren und Items
+          </p>
 
-          <div className="space-y-1">
-            <label className="text-xs text-text-muted font-display uppercase tracking-wider">Neuer Löschcode bestätigen</label>
-            <input
-              type="text"
-              maxLength={7}
-              placeholder="z.B. 1234567"
-              value={newDeleteCodeConfirm}
-              onChange={(e) => setNewDeleteCodeConfirm(e.target.value.replace(/\D/g, ''))}
-              className="w-full bg-surface-2 border border-border/25 rounded px-3 py-2 text-sm text-text focus:outline-none focus:border-primary/50 transition-colors"
-              required
-            />
-          </div>
-
-          <Button
+          <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary/95 text-bg font-display uppercase tracking-widest text-xs py-2 hover:shadow-[0_0_15px_var(--color-glow)] transition-all"
+            style={{
+              width: "100%", padding: "12px 0",
+              background: loading ? "var(--color-surface-2)" : "var(--color-primary)",
+              border: "none", borderRadius: 4, color: "#fff",
+              fontFamily: "var(--font-display)", fontWeight: 700,
+              fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.08em",
+              cursor: loading ? "not-allowed" : "pointer", transition: "background 0.15s",
+            }}
           >
-            {loading ? "Wird gespeichert..." : "Löschcode ändern"}
-          </Button>
+            {loading ? "Wird gespeichert…" : "Löschcode ändern"}
+          </button>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

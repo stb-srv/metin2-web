@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Rajdhani:wght@600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,53 +6,68 @@
 
 @layer base {
   :root {
-    --color-bg:        #0a0b0f;
-    --color-surface:   #111318;
-    --color-border:    #2a2d3a;
-    --color-primary:   #c8a84b;
-    --color-glow:      rgba(200, 168, 75, 0.15);
-    --color-text:      #e8dcc8;
-    --color-muted:     #7a7060;
-    --color-rare:      #4a9eff;
-    --color-epic:      #b24bff;
-    --color-legendary: #ff8c00;
+    --color-bg:        #0d0e12;
+    --color-surface:   #14161d;
+    --color-surface-2: #1c1e27;
+    --color-border:    #2a2c35;
+    --color-primary:   #c0392b;
+    --color-accent:    #c0392b;
+    --color-danger:    #e74c3c;
+    --color-success:   #2ecc71;
+    --color-warning:   #f39c12;
+    --color-text:      #e2e4e9;
+    --color-text-muted: #888b96;
+    --color-rare:      #2980b9;
+    --color-epic:      #8e44ad;
+    --color-legendary: #e67e22;
+    --color-glow:      rgba(192, 57, 43, 0.08);
 
-    --font-display: 'Cinzel', serif;
-    --font-body:    'Crimson Text', serif;
+    --font-display: 'Rajdhani', sans-serif;
+    --font-body:    'Open Sans', sans-serif;
 
     --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
+    --radius-md: 6px;
+    --radius-lg: 6px;
   }
 
   body {
     background-color: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-body);
-    font-size: 1.125rem;
+    font-size: 1rem;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
+    font-weight: 700;
   }
 }
 
 @layer components {
   .hex-icon {
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    background: var(--color-surface);
+    background: var(--color-surface-2);
     border: 1px solid var(--color-border);
   }
 
   .card {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    box-shadow: 0 0 20px var(--color-glow);
-    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: border-color 0.2s ease, background-color 0.2s ease;
   }
   .card:hover {
-    box-shadow: 0 0 40px var(--color-glow);
     border-color: var(--color-primary);
+  }
+
+  .section-header {
+    border-bottom: 2px solid var(--color-primary);
+    padding-bottom: 0.5rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .item-legendary {
@@ -60,19 +75,18 @@
   }
 
   .item-rare {
-    box-shadow: 0 0 12px var(--color-rare);
+    border-color: var(--color-rare) !important;
   }
 
   .item-epic {
-    box-shadow: 0 0 12px var(--color-epic);
+    border-color: var(--color-epic) !important;
   }
 }
 
 /* Animations */
 @keyframes legendary-glow {
-  0%, 100% { box-shadow: 0 0 8px var(--color-legendary); }
-  50%       { box-shadow: 0 0 24px var(--color-legendary),
-                          0 0 48px rgba(255,140,0,0.3); }
+  0%, 100% { border-color: var(--color-legendary); }
+  50%       { border-color: #f39c12; }
 }
 
 /* Scrollbar Styling */
@@ -87,12 +101,11 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border: 1px solid var(--color-primary);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-primary);
-  box-shadow: 0 0 8px var(--color-primary);
 }

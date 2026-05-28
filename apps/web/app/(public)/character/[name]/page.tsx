@@ -1,25 +1,9 @@
 "use client"
 
 import React, { useEffect, useState, use } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { StatusDot } from "@/components/ui/status-dot"
-import { 
-  Shield, 
-  Sword, 
-  Heart, 
-  Zap, 
-  Award, 
-  Activity, 
-  Clock, 
-  User, 
-  Users, 
-  Trophy, 
-  ArrowLeft
-} from "lucide-react"
+import { ArrowLeft } from "lucide-react"
+import Link from "next/link"
 
 type CharacterDetails = {
   id: number
@@ -32,14 +16,61 @@ type CharacterDetails = {
   alignment: number
   hp_max: number
   sp_max: number
-  st: number // stamina
-  ht: number // health/con
-  dx: number // dexterity
-  iq: number // intelligence
-  str: number // strength
+  st: number
+  ht: number
+  dx: number
+  iq: number
+  str: number
   exp: number
   gold: number
   logoff_time: number
+}
+
+const JOB_INFO: Record<number, { name: string; emoji: string; color: string }> = {
+  0: { name: "Krieger",    emoji: "⚔",  color: "#c0392b" },
+  1: { name: "Kriegerin",  emoji: "⚔",  color: "#c0392b" },
+  2: { name: "Ninja",      emoji: "🏹", color: "#2980b9" },
+  3: { name: "Ninja(w)",   emoji: "🏹", color: "#2980b9" },
+  4: { name: "Sura",       emoji: "🔮", color: "#8e44ad" },
+  5: { name: "Sura(w)",    emoji: "🔮", color: "#8e44ad" },
+  6: { name: "Schamane",   emoji: "🌿", color: "#27ae60" },
+  7: { name: "Schamanin",  emoji: "🌿", color: "#27ae60" },
+}
+
+const EMPIRE_INFO: Record<number, { name: string; color: string; bg: string }> = {
+  1: { name: "Shinsoo", color: "#e74c3c", bg: "rgba(231,76,60,0.15)" },
+  2: { name: "Chunjo",  color: "#f1c40f", bg: "rgba(241,196,15,0.15)" },
+  3: { name: "Jinno",   color: "#3498db", bg: "rgba(52,152,219,0.15)" },
+}
+
+function StatBlock({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div style={{
+      background: "var(--color-surface-2)",
+      borderLeft: "3px solid var(--color-primary)",
+      borderRadius: "0 4px 4px 0",
+      padding: "12px 16px",
+    }}>
+      <div style={{
+        fontFamily: "var(--font-display)",
+        fontSize: "0.65rem",
+        textTransform: "uppercase",
+        letterSpacing: "0.1em",
+        color: "var(--color-text-muted)",
+        marginBottom: 4,
+      }}>
+        {label}
+      </div>
+      <div style={{
+        fontFamily: "var(--font-display)",
+        fontSize: "1.2rem",
+        fontWeight: 700,
+        color: "var(--color-text)",
+      }}>
+        {value}
+      </div>
+    </div>
+  )
 }
 
 export default function CharacterPage({ params }: { params: Promise<{ name: string }> }) {
@@ -71,7 +102,7 @@ export default function CharacterPage({ params }: { params: Promise<{ name: stri
   }, [name])
 
   useEffect(() => {
-    fetch('/api/modules/rankings?type=level&limit=1000')
+    fetch("/api/modules/rankings?type=level&limit=1000")
       .then(res => {
         if (!res.ok) throw new Error()
         return res.json()
@@ -80,56 +111,18 @@ export default function CharacterPage({ params }: { params: Promise<{ name: stri
         const rankings = d.rankings || []
         const decodedName = decodeURIComponent(name)
         const idx = rankings.findIndex((r: any) => r.name.toLowerCase() === decodedName.toLowerCase())
-        if (idx !== -1) {
-          setServerRank(idx + 1)
-        } else {
-          setServerRank(null)
-        }
+        setServerRank(idx !== -1 ? idx + 1 : null)
       })
       .catch(err => {
         console.error("Error fetching rank:", err)
       })
   }, [name])
 
-  const getJobDetails = (job: number) => {
-    const jobs: Record<number, { name: string; gender: string }> = {
-      0: { name: "Krieger", gender: "Männlich" },
-      1: { name: "Krieger", gender: "Weiblich" },
-      2: { name: "Ninja", gender: "Männlich" },
-      3: { name: "Ninja", gender: "Weiblich" },
-      4: { name: "Sura", gender: "Männlich" },
-      5: { name: "Sura", gender: "Weiblich" },
-      6: { name: "Schamane", gender: "Männlich" },
-      7: { name: "Schamane", gender: "Weiblich" }
-    }
-    return jobs[job] || { name: "Lykaner", gender: "Unbekannt" }
-  }
-
-  const getEmpireDetails = (empire: number) => {
-    switch (empire) {
-      case 1: return { name: "Shinsoo", color: "text-[#e74c3c]", border: "border-[#e74c3c]/30" }
-      case 2: return { name: "Chunjo", color: "text-[#f1c40f]", border: "border-[#f1c40f]/30" }
-      case 3: return { name: "Jinno", color: "text-[#3498db]", border: "border-[#3498db]/30" }
-      default: return { name: "Unbekannt", color: "text-text", border: "border-border/30" }
-    }
-  }
-
-  const getAlignmentDetails = (alignment: number) => {
-    if (alignment >= 12000) return { title: "Ritterlich", color: "text-success bg-success/15 border-success/30" }
-    if (alignment >= 8000) return { title: "Edel", color: "text-success/90 bg-success/10 border-success/20" }
-    if (alignment >= 4000) return { title: "Gut", color: "text-success/80 bg-success/5 border-success/10" }
-    if (alignment >= 1000) return { title: "Freundlich", color: "text-success/70 bg-success/5 border-transparent" }
-    if (alignment >= 0) return { title: "Neutral", color: "text-text-muted bg-surface-2 border-border/10" }
-    if (alignment >= -3999) return { title: "Aggressiv", color: "text-warning bg-warning/10 border-warning/20" }
-    if (alignment >= -7999) return { title: "Überheblich", color: "text-warning/90 bg-warning/15 border-warning/30" }
-    if (alignment >= -11999) return { title: "Grausam", color: "text-danger bg-danger/10 border-danger/20" }
-    return { title: "Bösartig", color: "text-danger bg-danger/15 border-danger/30" }
-  }
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px] text-text-muted font-display tracking-widest animate-pulse">
-        Charakter-Details werden geladen...
+      <div className="flex items-center justify-center min-h-[400px]" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-display)" }}>
+        <span className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin mr-3" />
+        Charakter-Daten werden geladen…
       </div>
     )
   }
@@ -137,206 +130,241 @@ export default function CharacterPage({ params }: { params: Promise<{ name: stri
   if (error || !character) {
     return (
       <div className="text-center py-20 space-y-4">
-        <h2 className="text-2xl font-display text-danger uppercase tracking-wider">Fehler</h2>
-        <p className="text-text-muted">{error || "Charakter konnte nicht geladen werden."}</p>
-        <Button onClick={() => router.back()} className="bg-primary text-bg font-display uppercase tracking-wider hover:bg-primary/95">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Zurück
-        </Button>
+        <h2 style={{ fontFamily: "var(--font-display)", color: "var(--color-danger)", fontSize: "1.5rem", textTransform: "uppercase" }}>
+          Fehler
+        </h2>
+        <p style={{ color: "var(--color-text-muted)" }}>{error || "Charakter konnte nicht geladen werden."}</p>
+        <button
+          onClick={() => router.back()}
+          style={{
+            background: "var(--color-primary)", color: "#fff",
+            fontFamily: "var(--font-display)", textTransform: "uppercase",
+            letterSpacing: "0.1em", padding: "8px 20px", borderRadius: 4, border: "none",
+            cursor: "pointer", fontWeight: 700,
+          }}
+        >
+          ← Zurück
+        </button>
       </div>
     )
   }
 
-  const jobInfo = getJobDetails(character.job)
-  const empireInfo = getEmpireDetails(character.empire)
-  const alignmentInfo = getAlignmentDetails(character.alignment)
+  const job = JOB_INFO[character.job] ?? { name: "Lykaner", emoji: "🐺", color: "#888" }
+  const empire = EMPIRE_INFO[character.empire] ?? { name: "Unbekannt", color: "#888", bg: "transparent" }
+  const isOnline = character.logoff_time === 0
+  const playtimeHours = Math.floor(character.playtime / 60)
 
   return (
-    <div className="space-y-6">
-      <Button 
-        variant="ghost" 
-        onClick={() => router.back()} 
-        className="text-text-muted hover:text-text hover:bg-surface-2/40 border border-border/10 font-display text-xs uppercase tracking-wider"
+    <div className="space-y-4">
+      {/* Zurück-Button */}
+      <button
+        onClick={() => router.back()}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          background: "transparent", border: "1px solid var(--color-border)",
+          color: "var(--color-text-muted)", fontFamily: "var(--font-display)",
+          fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.1em",
+          padding: "6px 14px", borderRadius: 4, cursor: "pointer", transition: "all 0.15s",
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.color = "var(--color-text)"
+          e.currentTarget.style.borderColor = "var(--color-text-muted)"
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.color = "var(--color-text-muted)"
+          e.currentTarget.style.borderColor = "var(--color-border)"
+        }}
       >
-        <ArrowLeft className="w-4 h-4 mr-2" /> Zurück
-      </Button>
+        <ArrowLeft size={12} /> Zurück
+      </button>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left Card: Profile & Empire */}
-        <Card className="lg:col-span-1 bg-surface border-border/30 shadow-[0_0_20px_var(--color-glow)] flex flex-col justify-between">
-          <CardHeader className="text-center border-b border-border/20 pb-6">
-            <div className="mx-auto flex justify-center mb-4">
-              <div className="hex-icon w-24 h-24 flex items-center justify-center font-display font-bold text-3xl text-primary bg-surface-2 border-2 border-primary/50 shadow-[0_0_15px_var(--color-glow)]">
-                {jobInfo.name.slice(0, 2).toUpperCase()}
-              </div>
+      {/* Main 2-Spalten-Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
+
+        {/* ── Linke Sidebar ── */}
+        <div style={{
+          background: "var(--color-surface)",
+          border: "1px solid var(--color-border)",
+          borderRadius: 6,
+          padding: "28px 24px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 16,
+          textAlign: "center",
+        }}>
+          {/* Klassen-Avatar */}
+          <div style={{
+            width: 90, height: 90,
+            borderRadius: 6,
+            background: `${job.color}20`,
+            border: `2px solid ${job.color}50`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "2.8rem",
+          }}>
+            {job.emoji}
+          </div>
+
+          {/* Name */}
+          <h1 style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "1.75rem",
+            fontWeight: 700,
+            color: "var(--color-text)",
+            margin: 0,
+            lineHeight: 1.1,
+          }}>
+            {character.name}
+          </h1>
+
+          {/* Klasse */}
+          <span style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "0.8rem",
+            color: "var(--color-text-muted)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}>
+            {job.name}
+          </span>
+
+          {/* Imperium-Badge */}
+          <span style={{
+            display: "inline-block",
+            background: empire.bg,
+            color: empire.color,
+            border: `1px solid ${empire.color}50`,
+            borderRadius: 4,
+            padding: "3px 12px",
+            fontFamily: "var(--font-display)",
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}>
+            {empire.name}
+          </span>
+
+          {/* Online-Status */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-display)", fontSize: "0.8rem" }}>
+            <span style={{
+              width: 8, height: 8, borderRadius: "50%",
+              background: isOnline ? "var(--color-success)" : "var(--color-text-muted)",
+              boxShadow: isOnline ? "0 0 6px var(--color-success)" : "none",
+              display: "inline-block",
+              flexShrink: 0,
+            }} />
+            <span style={{ color: isOnline ? "var(--color-success)" : "var(--color-text-muted)" }}>
+              {isOnline
+                ? "Online"
+                : `Zuletzt: ${new Date(character.logoff_time * 1000).toLocaleDateString("de-DE")}`
+              }
+            </span>
+          </div>
+
+          {/* Server-Rang */}
+          {serverRank !== null && (
+            <div style={{
+              background: "var(--color-surface-2)",
+              border: "1px solid var(--color-border)",
+              borderRadius: 4,
+              padding: "6px 16px",
+              fontFamily: "var(--font-display)",
+              fontSize: "0.8rem",
+              color: "var(--color-text-muted)",
+            }}>
+              🏆 <span style={{ color: "var(--color-primary)", fontWeight: 700 }}>#{serverRank}</span> im Level-Ranking
             </div>
-            <CardTitle className="font-display text-2xl text-text tracking-wide mb-1">{character.name}</CardTitle>
-            <div className="flex justify-center gap-2 mt-2">
-              <Badge variant={character.logoff_time === 0 ? "success" : "default"}>
-                <StatusDot status={character.logoff_time === 0 ? "online" : "offline"} className="mr-1.5" />
-                {character.logoff_time === 0 ? "Online" : "Offline"}
-              </Badge>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${empireInfo.border} ${empireInfo.color} bg-surface-2/40`}>
-                {empireInfo.name}
-              </span>
+          )}
+
+          {/* Link zum Ranking */}
+          <Link
+            href="/rankings"
+            style={{
+              color: "var(--color-primary)",
+              fontFamily: "var(--font-display)",
+              fontSize: "0.75rem",
+              textDecoration: "none",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+            }}
+          >
+            Alle Rankings →
+          </Link>
+        </div>
+
+        {/* ── Rechte Spalte ── */}
+        <div className="space-y-5">
+
+          {/* Block 1: Charakter-Stats */}
+          <div style={{
+            background: "var(--color-surface)",
+            border: "1px solid var(--color-border)",
+            borderRadius: 6,
+            overflow: "hidden",
+          }}>
+            <div className="section-header px-5 py-3 flex items-center" style={{
+              background: "var(--color-surface-2)",
+              paddingBottom: "0.75rem",
+              borderBottom: "2px solid var(--color-primary)",
+            }}>
+              <span>Charakter-Stats</span>
             </div>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-4 flex-1">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center text-sm border-b border-border/10 pb-2">
-                <span className="text-text-muted flex items-center"><User className="w-4 h-4 mr-2 text-primary" /> Klasse</span>
-                <span className="font-semibold text-text">{jobInfo.name} ({jobInfo.gender})</span>
-              </div>
-              <div className="flex justify-between items-center text-sm border-b border-border/10 pb-2">
-                <span className="text-text-muted flex items-center"><Trophy className="w-4 h-4 mr-2 text-primary" /> Level</span>
-                <span className="font-display text-primary font-bold text-lg">{character.level}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm border-b border-border/10 pb-2">
-                <span className="text-text-muted flex items-center"><Activity className="w-4 h-4 mr-2 text-primary" /> Erfahrung (EXP)</span>
-                <span className="font-semibold text-text">{character.exp.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm border-b border-border/10 pb-2">
-                <span className="text-text-muted flex items-center"><Users className="w-4 h-4 mr-2 text-primary" /> Gilde</span>
-                {character.guild_name ? (
-                  <span className="font-semibold text-primary">
-                    {character.guild_name}
-                  </span>
-                ) : (
-                  <span className="text-text-muted italic">Keine Gilde</span>
-                )}
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-text-muted flex items-center"><Clock className="w-4 h-4 mr-2 text-primary" /> Zuletzt online</span>
-                <span className="font-semibold text-text">
-                  {character.logoff_time === 0 
-                    ? "Jetzt online" 
-                    : new Date(character.logoff_time * 1000).toLocaleString('de-DE')}
-                </span>
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-5">
+              <StatBlock label="Level" value={character.level} />
+              <StatBlock label="Klasse" value={job.name} />
+              <StatBlock label="Gilde" value={character.guild_name ?? "—"} />
+              <StatBlock label="Imperium" value={empire.name} />
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Middle Card: Stats and Attributes */}
-        <Card className="lg:col-span-2 bg-surface border-border/30 shadow-[0_0_20px_var(--color-glow)]">
-          <CardHeader className="border-b border-border/20 pb-4">
-            <CardTitle className="font-display text-lg text-primary tracking-wider uppercase">Charakter-Attribute</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-6">
-            
-            {/* Top Stats Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-surface-2/65 p-3 rounded-lg border border-border/10 text-center">
-                <div className="text-text-muted text-xs uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
-                  <Heart className="w-3.5 h-3.5 text-danger" /> HP
-                </div>
-                <div className="font-display text-lg font-bold text-text">{character.hp_max.toLocaleString()}</div>
-              </div>
-              <div className="bg-surface-2/65 p-3 rounded-lg border border-border/10 text-center">
-                <div className="text-text-muted text-xs uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
-                  <Zap className="w-3.5 h-3.5 text-accent" /> MP
-                </div>
-                <div className="font-display text-lg font-bold text-text">{character.sp_max.toLocaleString()}</div>
-              </div>
-              <div className="bg-surface-2/65 p-3 rounded-lg border border-border/10 text-center">
-                <div className="text-text-muted text-xs uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
-                  <Sword className="w-3.5 h-3.5 text-warning" /> Angriff (Spielzeit)
-                </div>
-                <div className="font-display text-sm font-bold text-text truncate">
-                  {character.playtime.toLocaleString()} Min.
-                </div>
-              </div>
-              <div className="bg-surface-2/65 p-3 rounded-lg border border-border/10 text-center">
-                <div className="text-text-muted text-xs uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
-                  <Award className="w-3.5 h-3.5 text-primary" /> Server-Rang
-                </div>
-                <div className="font-display text-lg font-bold text-primary">
-                  {serverRank !== null ? `#${serverRank}` : '—'}
-                </div>
-              </div>
+          {/* Block 2: Kampf-Stats */}
+          <div style={{
+            background: "var(--color-surface)",
+            border: "1px solid var(--color-border)",
+            borderRadius: 6,
+            overflow: "hidden",
+          }}>
+            <div className="section-header px-5 py-3 flex items-center" style={{
+              background: "var(--color-surface-2)",
+              paddingBottom: "0.75rem",
+              borderBottom: "2px solid var(--color-primary)",
+            }}>
+              <span>Kampf-Stats</span>
             </div>
-
-            {/* Attributes Bars (VIT, INT, STR, DEX) */}
-            <div className="space-y-4">
-              <h3 className="font-display text-sm text-text-muted uppercase tracking-wider border-b border-border/10 pb-1">Basis-Statuswerte</h3>
-              
-              {/* VIT */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-text font-medium">Vitalität (VIT / HT)</span>
-                  <span className="font-bold text-primary">{character.ht} / 90</span>
-                </div>
-                <div className="h-2.5 w-full bg-surface-2 rounded-full overflow-hidden border border-border/10">
-                  <div 
-                    className="h-full bg-danger shadow-[0_0_8px_var(--color-danger)] transition-all duration-500" 
-                    style={{ width: `${Math.min(100, (character.ht / 90) * 100)}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* INT */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-text font-medium">Intelligenz (INT / IQ)</span>
-                  <span className="font-bold text-primary">{character.iq} / 90</span>
-                </div>
-                <div className="h-2.5 w-full bg-surface-2 rounded-full overflow-hidden border border-border/10">
-                  <div 
-                    className="h-full bg-accent shadow-[0_0_8px_var(--color-accent)] transition-all duration-500" 
-                    style={{ width: `${Math.min(100, (character.iq / 90) * 100)}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* STR */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-text font-medium">Stärke (STR)</span>
-                  <span className="font-bold text-primary">{character.str} / 90</span>
-                </div>
-                <div className="h-2.5 w-full bg-surface-2 rounded-full overflow-hidden border border-border/10">
-                  <div 
-                    className="h-full bg-warning shadow-[0_0_8px_var(--color-warning)] transition-all duration-500" 
-                    style={{ width: `${Math.min(100, (character.str / 90) * 100)}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* DEX */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-text font-medium">Geschicklichkeit (DEX / DX)</span>
-                  <span className="font-bold text-primary">{character.dx} / 90</span>
-                </div>
-                <div className="h-2.5 w-full bg-surface-2 rounded-full overflow-hidden border border-border/10">
-                  <div 
-                    className="h-full bg-success shadow-[0_0_8px_var(--color-success)] transition-all duration-500" 
-                    style={{ width: `${Math.min(100, (character.dx / 90) * 100)}%` }}
-                  />
-                </div>
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-5">
+              <StatBlock label="HP (max)" value={character.hp_max.toLocaleString()} />
+              <StatBlock label="MP (max)" value={character.sp_max.toLocaleString()} />
+              <StatBlock label="Spielzeit" value={`${playtimeHours} Std.`} />
+              <StatBlock label="Erfahrung" value={character.exp.toLocaleString()} />
             </div>
+          </div>
 
-            {/* Secondary info (Alignment & Rank Info) */}
-            <div className="bg-surface-2/40 p-4 rounded-lg border border-border/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-4">
-              <div className="space-y-1">
-                <div className="text-xs text-text-muted uppercase tracking-wider">Gesinnungs-Rang</div>
-                <div className="flex items-center gap-2">
-                  <span className={`font-display font-semibold text-lg ${alignmentInfo.color.split(' ')[0]}`}>{alignmentInfo.title}</span>
-                  <Badge variant="default" className={`text-xs ${alignmentInfo.color}`}>
-                    {character.alignment > 0 ? `+${character.alignment}` : character.alignment} Pkt.
-                  </Badge>
-                </div>
-              </div>
-              <div className="text-sm text-text-muted max-w-sm">
-                Der Gesinnungs-Rang repräsentiert deine Ehre im Reich. Ein positiver Rang zeugt von Heldenmut, während ein negativer Rang auf ein gesetzloses Dasein hinweist.
-              </div>
+          {/* Block 3: Basis-Attribute */}
+          <div style={{
+            background: "var(--color-surface)",
+            border: "1px solid var(--color-border)",
+            borderRadius: 6,
+            overflow: "hidden",
+          }}>
+            <div className="section-header px-5 py-3 flex items-center" style={{
+              background: "var(--color-surface-2)",
+              paddingBottom: "0.75rem",
+              borderBottom: "2px solid var(--color-primary)",
+            }}>
+              <span>Basis-Attribute</span>
             </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-5">
+              <StatBlock label="Stärke (STR)" value={character.str} />
+              <StatBlock label="Vitalität (HT)" value={character.ht} />
+              <StatBlock label="Intelligenz (IQ)" value={character.iq} />
+              <StatBlock label="Geschicklichkeit (DX)" value={character.dx} />
+            </div>
+          </div>
 
-          </CardContent>
-        </Card>
-
+        </div>
       </div>
     </div>
   )

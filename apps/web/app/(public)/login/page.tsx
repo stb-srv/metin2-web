@@ -33,24 +33,60 @@ export default function LoginPage() {
     router.push('/dashboard')
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-bg px-4">
-      <div className="w-full max-w-md">
-        {/* Logo / Titel */}
-        <h1 className="font-display text-primary text-3xl tracking-widest uppercase text-center mb-8">
-          Anmelden
-        </h1>
+  const inputStyle: React.CSSProperties = {
+    width: '100%', background: '#0f1014',
+    border: '1px solid var(--color-border)',
+    borderRadius: 4, padding: '12px 14px',
+    color: 'var(--color-text)', fontFamily: 'var(--font-body)',
+    fontSize: '0.9rem', outline: 'none', transition: 'border-color 0.15s',
+    boxSizing: 'border-box',
+  }
 
-        <div className="bg-surface border border-border rounded-lg shadow-[0_0_20px_var(--color-glow)] p-8">
+  return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'var(--color-bg)', padding: '0 16px',
+    }}>
+      <div style={{ width: '100%', maxWidth: 420 }}>
+        {/* Logo / Server-Name */}
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <h1 style={{
+            fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '2rem',
+            color: 'var(--color-primary)', textTransform: 'uppercase',
+            letterSpacing: '0.1em', margin: 0,
+          }}>
+            Metin2 Web
+          </h1>
+          {/* Rote Trennlinie */}
+          <div style={{
+            width: 48, height: 2, background: 'var(--color-primary)',
+            margin: '12px auto 0', borderRadius: 1,
+          }} />
+        </div>
+
+        {/* Card */}
+        <div style={{
+          background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+          borderRadius: 6, padding: '32px 28px',
+        }}>
           {error && (
-            <div className="mb-6 p-3 rounded bg-danger/10 border border-danger text-danger text-sm">
+            <div style={{
+              marginBottom: 20, padding: '10px 14px', borderRadius: 4,
+              background: 'rgba(231,76,60,0.08)', border: '1px solid rgba(231,76,60,0.35)',
+              color: 'var(--color-danger)', fontFamily: 'var(--font-display)', fontSize: '0.82rem',
+            }}>
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* Identifier */}
             <div>
-              <label className="block text-muted text-sm mb-1" htmlFor="identifier">
+              <label htmlFor="identifier" style={{
+                display: 'block', marginBottom: 7,
+                fontFamily: 'var(--font-display)', fontSize: '0.72rem', fontWeight: 700,
+                color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em',
+              }}>
                 Benutzername oder E-Mail
               </label>
               <input
@@ -60,15 +96,20 @@ export default function LoginPage() {
                 autoComplete="username"
                 placeholder="dein-name oder name@beispiel.de"
                 value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-text
-                           focus:outline-none focus:border-primary focus:shadow-[0_0_8px_var(--color-glow)]
-                           transition-all"
+                onChange={e => setIdentifier(e.target.value)}
+                style={inputStyle}
+                onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary)'}
+                onBlur={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
               />
             </div>
 
+            {/* Passwort */}
             <div>
-              <label className="block text-muted text-sm mb-1" htmlFor="password">
+              <label htmlFor="password" style={{
+                display: 'block', marginBottom: 7,
+                fontFamily: 'var(--font-display)', fontSize: '0.72rem', fontWeight: 700,
+                color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em',
+              }}>
                 Passwort
               </label>
               <input
@@ -76,35 +117,50 @@ export default function LoginPage() {
                 type="password"
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-text
-                           focus:outline-none focus:border-primary focus:shadow-[0_0_8px_var(--color-glow)]
-                           transition-all"
+                onChange={e => setPassword(e.target.value)}
+                style={inputStyle}
+                onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary)'}
+                onBlur={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
               />
             </div>
 
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded bg-primary text-bg font-display tracking-widest uppercase
-                         hover:shadow-[0_0_16px_var(--color-glow)] transition-all
-                         disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              style={{
+                width: '100%', height: 48, marginTop: 4,
+                background: loading ? 'var(--color-surface-2)' : 'var(--color-primary)',
+                border: 'none', borderRadius: 4, color: '#fff',
+                fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem',
+                textTransform: 'uppercase', letterSpacing: '0.1em',
+                cursor: loading ? 'not-allowed' : 'pointer', transition: 'background 0.15s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+              onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#a93226' }}
+              onMouseLeave={e => { if (!loading) e.currentTarget.style.background = 'var(--color-primary)' }}
             >
               {loading ? (
                 <>
-                  <span className="w-4 h-4 rounded-full border-2 border-bg border-t-transparent animate-spin" />
+                  <span style={{
+                    width: 16, height: 16, borderRadius: '50%',
+                    border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff',
+                    display: 'inline-block', animation: 'spin 0.7s linear infinite',
+                  }} />
                   Wird angemeldet…
                 </>
-              ) : (
-                'Anmelden'
-              )}
+              ) : 'Anmelden'}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-muted text-sm">
+          <p style={{
+            marginTop: 20, textAlign: 'center',
+            fontFamily: 'var(--font-body)', fontSize: '0.85rem',
+            color: 'var(--color-text-muted)',
+          }}>
             Noch kein Account?{' '}
-            <Link href="/register" className="text-primary hover:underline">
-              Jetzt registrieren
+            <Link href="/register" style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 600 }}>
+              Jetzt registrieren →
             </Link>
           </p>
         </div>

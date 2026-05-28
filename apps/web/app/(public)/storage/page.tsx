@@ -3,10 +3,7 @@
 import React, { useEffect, useState, useRef, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Trash2, RotateCcw, AlertTriangle, Info } from "lucide-react"
+import { Trash2, RotateCcw } from "lucide-react"
 
 type StorageItem = {
   id: string
@@ -37,104 +34,80 @@ type TrashItem = {
   }
 }
 
-const GRADE_BORDER_CLASS = {
-  NORMAL: "border-border/30",
-  RARE: "border-[#4a9eff]/40 shadow-[0_0_12px_rgba(74,158,255,0.15)]",
-  EPIC: "border-[#b24bff]/40 shadow-[0_0_16px_rgba(178,75,255,0.2)] animate-pulse",
-  LEGENDARY: "border-[#ff8c00]/50 item-legendary",
+const GRADE_BORDER: Record<string, string> = {
+  NORMAL: "#252530",
+  RARE: "#2980b9",
+  EPIC: "#8e44ad",
+  LEGENDARY: "#e67e22",
 }
 
-const GRADE_TEXT_CLASS = {
-  NORMAL: "text-text-muted",
-  RARE: "text-[#4a9eff]",
-  EPIC: "text-[#b24bff]",
-  LEGENDARY: "text-[#ff8c00] font-bold",
+const GRADE_COLOR: Record<string, string> = {
+  NORMAL: "var(--color-text-muted)",
+  RARE: "#2980b9",
+  EPIC: "#8e44ad",
+  LEGENDARY: "#e67e22",
 }
 
 export default function StoragePage() {
   const { data: session } = useSession()
-  
+
   const [items, setItems] = useState<StorageItem[]>([])
   const [trashItems, setTrashItems] = useState<TrashItem[]>([])
   const [activeTab, setActiveTab] = useState<"storage" | "trash">("storage")
-  
   const [loading, setLoading] = useState(true)
   const [draggedSlot, setDraggedSlot] = useState<number | null>(null)
-  
-  // Custom Hover Tooltip State
   const [hoveredSlot, setHoveredSlot] = useState<number | null>(null)
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 })
-  
-  // Restore Modal State
   const [restoringItem, setRestoringItem] = useState<TrashItem | null>(null)
   const [restoreSlot, setRestoreSlot] = useState<number>(0)
-  
-  // Fetch Storage Items
+
   const fetchStorage = () => {
     setLoading(true)
     fetch("/api/storage")
       .then(res => res.json())
-      .then((data) => {
-        setItems(data.items || [])
-        setLoading(false)
-      })
+      .then(data => { setItems(data.items || []); setLoading(false) })
       .catch(() => setLoading(false))
   }
 
-  // Fetch Trash Items
   const fetchTrash = () => {
     fetch("/api/storage/trash")
       .then(res => res.json())
-      .then((data) => {
-        setTrashItems(data.items || [])
-      })
+      .then(data => setTrashItems(data.items || []))
       .catch(() => {})
   }
 
   useEffect(() => {
-    if (session) {
-      fetchStorage()
-      fetchTrash()
-    }
+    if (session) { fetchStorage(); fetchTrash() }
   }, [session])
 
-  // Build key-value map for O(1) slot lookups during virtual rendering
   const itemsMap = useMemo(() => {
     const map = new Map<number, StorageItem>()
-    items.forEach(item => {
-      map.set(item.slot, item)
-    })
+    items.forEach(item => map.set(item.slot, item))
     return map
   }, [items])
 
-  // HTML5 Drag handlers
   const handleDragStart = (e: React.DragEvent, slot: number) => {
     e.dataTransfer.setData("text/plain", slot.toString())
     setDraggedSlot(slot)
   }
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-  }
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault()
 
   const handleDrop = async (e: React.DragEvent, targetSlot: number) => {
     e.preventDefault()
     const fromSlot = parseInt(e.dataTransfer.getData("text/plain"), 10)
     if (isNaN(fromSlot) || fromSlot === targetSlot) return
 
-    // Optimistically update positions in local UI state
     const fromItem = items.find(i => i.slot === fromSlot)
     const toItem = items.find(i => i.slot === targetSlot)
-
     if (!fromItem) return
 
-    let updatedItems = [...items]
-    updatedItems = updatedItems.map(item => {
+    let updated = items.map(item => {
       if (item.slot === fromSlot) return { ...item, slot: targetSlot }
       if (toItem && item.slot === targetSlot) return { ...item, slot: fromSlot }
       return item
     })
-    setItems(updatedItems)
+    setItems(updated)
 
     try {
       const res = await fetch("/api/storage/move", {
@@ -143,24 +116,15 @@ export default function StoragePage() {
         body: JSON.stringify({ fromSlot, toSlot: targetSlot }),
       })
       if (!res.ok) throw new Error()
-      fetchTrash() // Maybe cashback/trash updated
-    } catch {
-      // Revert if API failed
-      fetchStorage()
-    } finally {
-      setDraggedSlot(null)
-    }
+    } catch { fetchStorage() }
+    finally { setDraggedSlot(null) }
   }
 
-  // Trash Drop Handler
   const handleTrashDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     const fromSlot = parseInt(e.dataTransfer.getData("text/plain"), 10)
     if (isNaN(fromSlot)) return
-
-    // Optimistically delete from UI list
     setItems(prev => prev.filter(i => i.slot !== fromSlot))
-
     try {
       const res = await fetch("/api/storage/item", {
         method: "DELETE",
@@ -169,58 +133,39 @@ export default function StoragePage() {
       })
       if (!res.ok) throw new Error()
       fetchTrash()
-    } catch {
-      fetchStorage()
-    } finally {
-      setDraggedSlot(null)
-    }
+    } catch { fetchStorage() }
+    finally { setDraggedSlot(null) }
   }
 
-  // Restore Action
   const handleOpenRestoreModal = (item: TrashItem) => {
     setRestoringItem(item)
-    // Find first empty slot
     let firstFree = 0
     for (let i = 0; i < 1000; i++) {
-      if (!itemsMap.has(i)) {
-        firstFree = i
-        break
-      }
+      if (!itemsMap.has(i)) { firstFree = i; break }
     }
     setRestoreSlot(firstFree)
   }
 
   const handleConfirmRestore = async () => {
     if (!restoringItem) return
-    
     try {
       const res = await fetch("/api/storage/trash/restore", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          trashId: restoringItem.id,
-          targetSlot: restoreSlot,
-        }),
+        body: JSON.stringify({ trashId: restoringItem.id, targetSlot: restoreSlot }),
       })
-
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || "Wiederherstellung fehlgeschlagen.")
+        throw new Error(data.error || "Fehler")
       }
-
       setRestoringItem(null)
-      fetchStorage()
-      fetchTrash()
-    } catch (err: any) {
-      alert(err.message)
-    }
+      fetchStorage(); fetchTrash()
+    } catch (err: any) { alert(err.message) }
   }
 
-  // Capacity calculations
   const storageCapacityPercent = (items.length / 1000) * 100
   const trashCapacityPercent = (trashItems.length / 128) * 100
 
-  // Row Virtualizer Settings (100 rows, 10 columns per row)
   const parentRef = useRef<HTMLDivElement>(null)
   const rowVirtualizer = useVirtualizer({
     count: 100,
@@ -229,7 +174,6 @@ export default function StoragePage() {
     overscan: 4,
   })
 
-  // Format Unix Timestamp Countdown
   const formatCountdown = (expiresAtStr: string) => {
     const diff = new Date(expiresAtStr).getTime() - Date.now()
     if (diff <= 0) return "Abgelaufen"
@@ -239,152 +183,150 @@ export default function StoragePage() {
     return `${hours}h`
   }
 
+  const tabStyle = (isActive: boolean): React.CSSProperties => ({
+    padding: "10px 20px",
+    background: "transparent",
+    border: "none",
+    borderBottom: isActive ? "2px solid var(--color-primary)" : "2px solid transparent",
+    color: isActive ? "var(--color-primary)" : "var(--color-text-muted)",
+    fontFamily: "var(--font-display)",
+    fontWeight: 700, fontSize: "0.85rem",
+    textTransform: "uppercase", letterSpacing: "0.08em",
+    cursor: "pointer", transition: "all 0.15s",
+  })
+
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="font-display text-3xl text-primary uppercase tracking-widest font-bold">
-            Web-Lager
-          </h1>
-          <p className="text-text-muted text-sm mt-1">
-            Sortiere deine Gegenstände via Drag & Drop oder stelle gelöschte Items aus dem Papierkorb wieder her.
-          </p>
-        </div>
+      {/* Header */}
+      <div>
+        <h1 className="section-header" style={{ fontSize: "1.8rem", display: "inline-block" }}>Web-Lager</h1>
+        <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem", marginTop: 6, fontFamily: "var(--font-body)" }}>
+          Sortiere deine Gegenstände via Drag & Drop oder stelle gelöschte Items wieder her.
+        </p>
+      </div>
 
-        {/* Tab Controls */}
-        <div className="flex gap-2 bg-surface-2/80 p-1 rounded-md border border-border/30 font-display text-xs uppercase tracking-wider">
-          <button
-            onClick={() => setActiveTab("storage")}
-            className={`px-4 py-2 rounded transition-colors ${
-              activeTab === "storage"
-                ? "bg-primary text-bg font-bold shadow-[0_0_8px_var(--color-glow)]"
-                : "text-text-muted hover:text-text"
-            }`}
-          >
-            Lager ({items.length}/1000)
-          </button>
-          <button
-            onClick={() => setActiveTab("trash")}
-            className={`px-4 py-2 rounded transition-colors ${
-              activeTab === "trash"
-                ? "bg-danger text-text font-bold shadow-[0_0_8px_rgba(224,90,58,0.2)]"
-                : "text-text-muted hover:text-text"
-            }`}
-          >
-            Papierkorb ({trashItems.length}/128)
-          </button>
-        </div>
+      {/* Tabs */}
+      <div style={{ display: "flex", borderBottom: "1px solid var(--color-border)" }}>
+        <button style={tabStyle(activeTab === "storage")} onClick={() => setActiveTab("storage")}>
+          Lager ({items.length}/1000)
+        </button>
+        <button style={tabStyle(activeTab === "trash")} onClick={() => setActiveTab("trash")}>
+          Papierkorb ({trashItems.length}/128)
+        </button>
       </div>
 
       {/* Capacity Bars */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Lager Bar */}
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs text-text-muted">
-            <span>Lagerbelegung</span>
-            <span className="font-bold text-text">{items.length} / 1000 Slots</span>
+        {[
+          { label: "Lagerbelegung", pct: storageCapacityPercent, count: items.length, max: 1000 },
+          { label: "Papierkorbbelegung", pct: trashCapacityPercent, count: trashItems.length, max: 128 },
+        ].map(({ label, pct, count, max }) => (
+          <div key={label} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", fontFamily: "var(--font-display)", color: "var(--color-text-muted)" }}>
+              <span>{label}</span>
+              <span style={{ color: "var(--color-text)", fontWeight: 700 }}>{count} / {max}</span>
+            </div>
+            <div style={{ height: 4, background: "var(--color-surface-2)", borderRadius: 2, overflow: "hidden" }}>
+              <div style={{
+                height: "100%", borderRadius: 2, transition: "width 0.5s",
+                width: `${pct}%`,
+                background: pct >= 90 ? "var(--color-danger)" : pct >= 70 ? "var(--color-warning)" : "var(--color-primary)",
+              }} />
+            </div>
           </div>
-          <div className="h-2 w-full bg-surface-2 rounded-full overflow-hidden border border-border/10">
-            <div
-              className={`h-full transition-all duration-500 ${
-                storageCapacityPercent >= 95 
-                  ? "bg-danger shadow-[0_0_8px_var(--color-danger)]" 
-                  : storageCapacityPercent >= 80 
-                    ? "bg-warning shadow-[0_0_8px_var(--color-warning)]" 
-                    : "bg-primary shadow-[0_0_8px_var(--color-glow)]"
-              }`}
-              style={{ width: `${storageCapacityPercent}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Trash Bar */}
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs text-text-muted">
-            <span>Papierkorbbelegung</span>
-            <span className="font-bold text-text">{trashItems.length} / 128 Items</span>
-          </div>
-          <div className="h-2 w-full bg-surface-2 rounded-full overflow-hidden border border-border/10">
-            <div
-              className="h-full bg-danger shadow-[0_0_8px_var(--color-danger)] transition-all duration-500"
-              style={{ width: `${trashCapacityPercent}%` }}
-            />
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Main Grid Views */}
+      {/* Storage Tab */}
       {activeTab === "storage" ? (
-        <div className="relative">
-          {/* Virtual Grid Container */}
+        <div>
           <div
             ref={parentRef}
-            className="h-[600px] overflow-y-auto border border-border/30 rounded-lg bg-surface/50 p-4 shadow-[0_0_30px_var(--color-glow)]"
+            style={{
+              height: 600, overflowY: "auto",
+              background: "var(--color-surface)",
+              border: "1px solid var(--color-border)",
+              borderRadius: 6, padding: 12,
+            }}
           >
-            <div
-              style={{
-                height: `${rowVirtualizer.getTotalSize()}px`,
-                width: "100%",
-                position: "relative",
-              }}
-            >
-              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
+              {rowVirtualizer.getVirtualItems().map(virtualRow => {
                 const rowIndex = virtualRow.index
-                const rowSlots = Array.from({ length: 10 }).map((_, c) => rowIndex * 10 + c)
+                const rowSlots = Array.from({ length: 10 }, (_, c) => rowIndex * 10 + c)
 
                 return (
                   <div
                     key={virtualRow.key}
-                    className="absolute top-0 left-0 w-full grid grid-cols-10 gap-2 pb-2"
                     style={{
-                      height: "54px",
+                      position: "absolute", top: 0, left: 0, width: "100%",
+                      display: "grid", gridTemplateColumns: "repeat(10, 1fr)",
+                      gap: 4, paddingBottom: 4,
+                      height: 58,
                       transform: `translateY(${virtualRow.start}px)`,
                     }}
                   >
-                    {rowSlots.map((slotIndex) => {
+                    {rowSlots.map(slotIndex => {
                       const item = itemsMap.get(slotIndex)
                       const isDragged = draggedSlot === slotIndex
+                      const borderColor = item ? GRADE_BORDER[item.template.grade] : "#252530"
 
                       return (
                         <div
                           key={slotIndex}
                           onDragOver={handleDragOver}
-                          onDrop={(e) => handleDrop(e, slotIndex)}
-                          className={`aspect-square w-full rounded border flex items-center justify-center relative transition-all duration-300 ${
-                            item 
-                              ? `${GRADE_BORDER_CLASS[item.template.grade]} bg-surface-2 cursor-grab active:cursor-grabbing` 
-                              : "border-border/10 bg-surface-2/10 hover:bg-surface-2/20"
-                          } ${isDragged ? "opacity-30" : ""}`}
+                          onDrop={e => handleDrop(e, slotIndex)}
                           draggable={!!item}
-                          onDragStart={(e) => handleDragStart(e, slotIndex)}
-                          onMouseEnter={(e) => {
+                          onDragStart={e => handleDragStart(e, slotIndex)}
+                          style={{
+                            width: "100%", aspectRatio: "1",
+                            background: "#0f1014",
+                            border: `1px solid ${borderColor}`,
+                            borderRadius: 4,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            position: "relative", transition: "border-color 0.15s, box-shadow 0.15s",
+                            cursor: item ? "grab" : "default",
+                            opacity: isDragged ? 0.3 : 1,
+                          }}
+                          onMouseEnter={e => {
                             if (item) {
                               setHoveredSlot(slotIndex)
-                              setTooltipPos({ x: e.clientX + 10, y: e.clientY + 10 })
-                            }
-                          }}
-                          onMouseMove={(e) => {
-                            if (item) {
                               setTooltipPos({ x: e.clientX + 12, y: e.clientY + 12 })
+                              e.currentTarget.style.boxShadow = "0 0 8px rgba(192,57,43,0.4)"
                             }
                           }}
-                          onMouseLeave={() => setHoveredSlot(null)}
+                          onMouseLeave={e => {
+                            setHoveredSlot(null)
+                            e.currentTarget.style.boxShadow = "none"
+                          }}
+                          onMouseMove={e => {
+                            if (item) setTooltipPos({ x: e.clientX + 12, y: e.clientY + 12 })
+                          }}
                         >
                           {item ? (
                             <>
-                              {/* Item icon (hex badge placeholder) */}
-                              <div className="hex-icon w-9 h-9 flex items-center justify-center font-display font-bold text-[9px] text-primary bg-surface/80 border border-primary/20">
+                              <div style={{
+                                width: 28, height: 28, borderRadius: 2,
+                                background: "var(--color-surface)",
+                                border: `1px solid ${borderColor}`,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontFamily: "var(--font-display)", fontWeight: 700,
+                                fontSize: "0.55rem", color: "var(--color-text-muted)",
+                              }}>
                                 {item.template.vnum}
                               </div>
                               {item.count > 1 && (
-                                <span className="absolute bottom-1 right-1 bg-surface-2/90 border border-border/20 text-text font-mono font-bold text-[8px] px-1 rounded">
+                                <span style={{
+                                  position: "absolute", bottom: 1, right: 2,
+                                  background: "rgba(0,0,0,0.8)",
+                                  color: "var(--color-text)", fontWeight: 700, fontSize: "0.5rem",
+                                  padding: "0 2px", borderRadius: 2,
+                                }}>
                                   {item.count}
                                 </span>
                               )}
                             </>
                           ) : (
-                            <span className="text-[10px] text-text-muted font-mono">{slotIndex + 1}</span>
+                            <span style={{ fontSize: "0.5rem", color: "rgba(255,255,255,0.1)" }}>{slotIndex + 1}</span>
                           )}
                         </div>
                       )
@@ -395,34 +337,38 @@ export default function StoragePage() {
             </div>
           </div>
 
-          {/* HTML5 Custom Tooltip */}
+          {/* Tooltip */}
           {hoveredSlot !== null && itemsMap.get(hoveredSlot) && (
             <div
-              className="fixed bg-surface border border-primary/40 rounded-md p-3.5 shadow-[0_0_24px_rgba(200,168,75,0.35)] max-w-xs z-50 animate-in fade-in duration-100 font-display pointer-events-none"
-              style={{ top: `${tooltipPos.y}px`, left: `${tooltipPos.x}px` }}
+              style={{
+                position: "fixed", top: tooltipPos.y, left: tooltipPos.x,
+                background: "var(--color-surface)", border: "1px solid var(--color-border)",
+                borderTop: "2px solid var(--color-primary)",
+                borderRadius: 4, padding: "10px 14px",
+                maxWidth: 220, zIndex: 100, pointerEvents: "none",
+                fontFamily: "var(--font-display)",
+              }}
             >
               {(() => {
                 const it = itemsMap.get(hoveredSlot)!
                 return (
-                  <div className="space-y-1.5 text-xs">
-                    <div className={`font-bold uppercase tracking-wider text-sm ${GRADE_TEXT_CLASS[it.template.grade]}`}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div style={{ fontWeight: 700, fontSize: "0.85rem", color: GRADE_COLOR[it.template.grade] }}>
                       {it.template.name}
                     </div>
-                    <div className="text-[10px] text-text-muted uppercase border-b border-border/10 pb-1 flex justify-between">
-                      <span>Rarity: {it.template.grade}</span>
-                      <span>Slot: {it.slot + 1}</span>
+                    <div style={{ fontSize: "0.65rem", color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      {it.template.grade} · Slot {it.slot + 1}
                     </div>
-                    <p className="text-[11px] text-text-muted leading-normal">
-                      {it.template.description || "Ein geheimnisvoller Gegenstand."}
-                    </p>
+                    {it.template.description && (
+                      <p style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", marginTop: 4, lineHeight: 1.4 }}>
+                        {it.template.description}
+                      </p>
+                    )}
                     {it.enchants && Object.keys(it.enchants).length > 0 && (
-                      <div className="pt-1.5 border-t border-border/10">
-                        <div className="text-[10px] text-primary uppercase tracking-wider mb-1">Boni</div>
-                        <ul className="space-y-0.5 text-[10px] text-success">
-                          {Object.entries(it.enchants).map(([k, v]) => (
-                            <li key={k}>• {k}: +{String(v)}</li>
-                          ))}
-                        </ul>
+                      <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 4, marginTop: 4 }}>
+                        {Object.entries(it.enchants).map(([k, v]) => (
+                          <div key={k} style={{ fontSize: "0.65rem", color: "var(--color-success)" }}>• {k}: +{String(v)}</div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -431,145 +377,190 @@ export default function StoragePage() {
             </div>
           )}
 
-          {/* DND Drag-to-delete Trash zone */}
+          {/* Trash Drop Zone */}
           <div
             onDragOver={handleDragOver}
             onDrop={handleTrashDrop}
-            className="mt-6 border-2 border-dashed border-danger/30 hover:border-danger/60 bg-danger/5 hover:bg-danger/10 text-danger rounded-lg p-5 flex items-center justify-center gap-3 transition-all duration-300 font-display uppercase tracking-wider text-xs shadow-[0_0_15px_rgba(224,90,58,0.05)] cursor-default"
+            style={{
+              marginTop: 16, padding: "16px 24px",
+              border: "2px dashed rgba(231,76,60,0.3)", borderRadius: 6,
+              background: "rgba(231,76,60,0.03)",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+              color: "var(--color-danger)", fontFamily: "var(--font-display)",
+              fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.08em",
+              transition: "all 0.15s", cursor: "default",
+            }}
+            onDragEnter={e => {
+              e.currentTarget.style.borderColor = "rgba(231,76,60,0.7)"
+              e.currentTarget.style.background = "rgba(231,76,60,0.08)"
+            }}
+            onDragLeave={e => {
+              e.currentTarget.style.borderColor = "rgba(231,76,60,0.3)"
+              e.currentTarget.style.background = "rgba(231,76,60,0.03)"
+            }}
           >
-            <Trash2 className="w-5 h-5 animate-bounce" />
+            <Trash2 size={16} />
             <span>Gegenstand hier ablegen zum Löschen (Papierkorb)</span>
           </div>
         </div>
       ) : (
-        /* Trash tab view */
-        <Card className="bg-surface border border-border/30 shadow-[0_0_20px_var(--color-glow)]">
-          <CardHeader className="border-b border-border/20 pb-4">
-            <CardTitle className="font-display text-lg text-danger tracking-wider uppercase font-semibold">
-              Papierkorb
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
+        /* Papierkorb Tab */
+        <div style={{
+          background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 6, overflow: "hidden",
+        }}>
+          <div className="section-header px-5 py-3" style={{
+            background: "var(--color-surface-2)", borderBottom: "2px solid var(--color-primary)", fontSize: "0.85rem",
+          }}>
+            Papierkorb
+          </div>
+          <div style={{ padding: 20 }}>
             {trashItems.length === 0 ? (
-              <div className="text-center py-16 text-text-muted font-display">
+              <div style={{ textAlign: "center", padding: "48px 0", color: "var(--color-text-muted)", fontFamily: "var(--font-display)" }}>
                 Papierkorb ist leer.
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {trashItems.map((item) => {
-                  const remains = new Date(item.expiresAt).getTime() - Date.now()
-                  const isExpiringSoon = remains < 24 * 3600 * 1000 // < 24 hours
-
-                  return (
-                    <div
-                      key={item.id}
-                      className={`flex items-center justify-between p-4 rounded bg-surface-2/45 border ${
-                        isExpiringSoon ? "border-danger shadow-[0_0_12px_rgba(224,90,58,0.2)]" : "border-border/10"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3.5">
-                        <div className="hex-icon w-11 h-11 flex items-center justify-center bg-surface border border-border/30 text-text-muted grayscale opacity-60">
-                          {item.template.vnum}
-                        </div>
-                        <div>
-                          <h4 className="font-display font-bold text-xs uppercase tracking-wide text-text-muted">
-                            {item.template.name}
-                          </h4>
-                          <span className="text-[10px] text-text-muted font-mono">
-                            Anzahl: {item.count}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-2 shrink-0">
-                        <Badge variant={isExpiringSoon ? "danger" : "default"} className="text-[9px] uppercase tracking-wider">
-                          ⏱️ {formatCountdown(item.expiresAt)}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          onClick={() => handleOpenRestoreModal(item)}
-                          className="bg-success/15 hover:bg-success/25 text-success border border-success/30 font-display text-[10px] uppercase tracking-wider py-1 px-3.5 h-7 transition-all"
-                        >
-                          <RotateCcw className="w-3 h-3 mr-1" /> Wiederherstellen
-                        </Button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
+                    {["Item-Name", "Grade", "Gelöscht am", "Läuft ab", "Aktion"].map(h => (
+                      <th key={h} style={{
+                        padding: "8px 12px", textAlign: "left",
+                        fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.65rem",
+                        textTransform: "uppercase", letterSpacing: "0.08em",
+                        color: "var(--color-text-muted)",
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {trashItems.map((item, idx) => {
+                    const soon = new Date(item.expiresAt).getTime() - Date.now() < 24 * 3600 * 1000
+                    return (
+                      <tr
+                        key={item.id}
+                        style={{ background: idx % 2 === 0 ? "#141418" : "#111318" }}
+                      >
+                        <td style={{ padding: "10px 12px", fontFamily: "var(--font-display)", fontWeight: 600, color: GRADE_COLOR[item.template.grade] }}>
+                          {item.template.name}
+                          {item.count > 1 && <span style={{ color: "var(--color-text-muted)", fontSize: "0.75rem", marginLeft: 6 }}>x{item.count}</span>}
+                        </td>
+                        <td style={{ padding: "10px 12px", fontFamily: "var(--font-display)", fontSize: "0.75rem", color: GRADE_COLOR[item.template.grade] }}>
+                          {item.template.grade}
+                        </td>
+                        <td style={{ padding: "10px 12px", fontFamily: "var(--font-display)", fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
+                          {new Date(item.deletedAt).toLocaleDateString("de-DE")}
+                        </td>
+                        <td style={{ padding: "10px 12px", fontFamily: "var(--font-display)", fontSize: "0.75rem", color: soon ? "var(--color-danger)" : "var(--color-text-muted)" }}>
+                          {formatCountdown(item.expiresAt)}
+                        </td>
+                        <td style={{ padding: "10px 12px" }}>
+                          <button
+                            onClick={() => handleOpenRestoreModal(item)}
+                            style={{
+                              background: "transparent",
+                              border: "1px solid var(--color-primary)",
+                              color: "var(--color-primary)",
+                              borderRadius: 4, padding: "4px 10px",
+                              fontFamily: "var(--font-display)", fontWeight: 700,
+                              fontSize: "0.7rem", textTransform: "uppercase",
+                              letterSpacing: "0.06em", cursor: "pointer",
+                              display: "inline-flex", alignItems: "center", gap: 5,
+                              transition: "all 0.15s",
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.background = "var(--color-primary)"
+                              e.currentTarget.style.color = "#fff"
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = "transparent"
+                              e.currentTarget.style.color = "var(--color-primary)"
+                            }}
+                          >
+                            <RotateCcw size={11} /> Wiederherstellen
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-      {/* Target Slot Selection Modal for Trashed Items */}
+      {/* Restore Modal */}
       {restoringItem && (
-        <div className="fixed inset-0 bg-[#000]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface border border-success/30 max-w-md w-full rounded-lg shadow-[0_0_40px_var(--color-glow)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="p-6 border-b border-border/20 flex justify-between items-center bg-surface-2/40">
-              <h3 className="font-display font-bold text-lg text-success tracking-widest uppercase">
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)",
+          backdropFilter: "blur(4px)", zIndex: 50,
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        }}>
+          <div style={{
+            background: "var(--color-surface)", border: "1px solid var(--color-border)",
+            borderTop: "3px solid var(--color-success)", borderRadius: 6,
+            maxWidth: 440, width: "100%", overflow: "hidden",
+          }}>
+            <div style={{
+              padding: "16px 20px", background: "var(--color-surface-2)",
+              borderBottom: "1px solid var(--color-border)",
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+            }}>
+              <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "1rem", color: "var(--color-success)", textTransform: "uppercase" }}>
                 Slot auswählen
-              </h3>
-              <button 
-                onClick={() => setRestoringItem(null)}
-                className="text-text-muted hover:text-text text-xl font-bold focus:outline-none"
-              >
-                &times;
-              </button>
+              </span>
+              <button onClick={() => setRestoringItem(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", fontSize: "1.25rem" }}>×</button>
             </div>
-
-            {/* Modal Content */}
-            <div className="p-6 space-y-4">
-              <div className="flex items-center gap-4 bg-surface-2/45 p-3 rounded border border-border/10">
-                <div className="hex-icon w-12 h-12 flex items-center justify-center bg-surface border-border/30 text-text-muted">
-                  {restoringItem.template.vnum}
-                </div>
-                <div>
-                  <h4 className="font-display text-sm text-text font-bold uppercase tracking-wider">
-                    {restoringItem.template.name}
-                  </h4>
-                  <div className="text-[10px] text-text-muted mt-0.5">
-                    Anzahl: {restoringItem.count}
-                  </div>
-                </div>
+            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "0.9rem", color: "var(--color-text)", fontWeight: 600 }}>
+                {restoringItem.template.name}
+                <span style={{ color: "var(--color-text-muted)", fontWeight: 400, fontSize: "0.8rem", marginLeft: 8 }}>×{restoringItem.count}</span>
               </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-xs font-display text-text-muted uppercase tracking-wider">
-                  Zielslot wählen (nur freie Slots angezeigt)
+              <div>
+                <label style={{ display: "block", marginBottom: 6, fontFamily: "var(--font-display)", fontSize: "0.7rem", color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Zielslot wählen
                 </label>
                 <select
                   value={restoreSlot}
-                  onChange={(e) => setRestoreSlot(parseInt(e.target.value, 10))}
-                  className="w-full bg-surface-2 border border-border/40 rounded px-3.5 py-2 text-sm text-text font-display focus:outline-none focus:border-primary transition-colors cursor-pointer"
+                  onChange={e => setRestoreSlot(parseInt(e.target.value, 10))}
+                  style={{
+                    width: "100%", padding: "9px 12px",
+                    background: "var(--color-surface-2)", border: "1px solid var(--color-border)",
+                    borderRadius: 4, color: "var(--color-text)",
+                    fontFamily: "var(--font-display)", fontSize: "0.85rem", outline: "none",
+                  }}
                 >
-                  {Array.from({ length: 1000 }).map((_, idx) => {
+                  {Array.from({ length: 1000 }, (_, idx) => {
                     if (itemsMap.has(idx)) return null
-                    return (
-                      <option key={idx} value={idx}>
-                        Slot {idx + 1} (Frei)
-                      </option>
-                    )
+                    return <option key={idx} value={idx}>Slot {idx + 1} (Frei)</option>
                   })}
                 </select>
               </div>
-
-              {/* Submit Actions */}
-              <div className="flex gap-3 pt-2">
-                <Button
-                  variant="ghost"
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
                   onClick={() => setRestoringItem(null)}
-                  className="w-1/2 border border-border/20 text-text-muted hover:text-text font-display uppercase tracking-widest text-xs py-2 hover:bg-surface-2"
+                  style={{
+                    flex: 1, padding: "10px 0", background: "transparent",
+                    border: "1px solid var(--color-border)", borderRadius: 4,
+                    color: "var(--color-text-muted)", fontFamily: "var(--font-display)",
+                    fontWeight: 700, fontSize: "0.8rem", textTransform: "uppercase",
+                    letterSpacing: "0.06em", cursor: "pointer",
+                  }}
                 >
                   Abbrechen
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={handleConfirmRestore}
-                  className="w-1/2 bg-success text-bg font-display uppercase tracking-widest text-xs py-2 hover:bg-success/95 hover:shadow-[0_0_12px_rgba(76,175,80,0.15)] transition-all"
+                  style={{
+                    flex: 1, padding: "10px 0", background: "var(--color-success)",
+                    border: "none", borderRadius: 4, color: "#fff",
+                    fontFamily: "var(--font-display)", fontWeight: 700,
+                    fontSize: "0.8rem", textTransform: "uppercase",
+                    letterSpacing: "0.06em", cursor: "pointer",
+                  }}
                 >
                   Bestätigen
-                </Button>
+                </button>
               </div>
             </div>
           </div>

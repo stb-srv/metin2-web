@@ -1,18 +1,19 @@
 import type { Metadata } from 'next'
-import { Inter, Cinzel } from 'next/font/google'
+import { Open_Sans, Rajdhani } from 'next/font/google'
 import { cmsDb } from '@/lib/cms-db'
 import { themeToCSS, ThemeConfig } from '@/lib/theme-engine'
 import { ThemeProvider } from '@/components/core/ThemeProvider'
 import './globals.css'
 
-const inter = Inter({ 
+const openSans = Open_Sans({ 
   subsets: ['latin'], 
   variable: '--font-body',
   display: 'swap',
 })
 
-const cinzel = Cinzel({ 
+const rajdhani = Rajdhani({ 
   subsets: ['latin'], 
+  weight: ['600', '700'],
   variable: '--font-display',
   display: 'swap',
 })
@@ -46,11 +47,11 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="de" data-theme={themeId} className={`${inter.variable} ${cinzel.variable}`}>
+    <html lang="de" data-theme={themeId} className={`${openSans.variable} ${rajdhani.variable}`}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet" />
         {themeCss && <style dangerouslySetInnerHTML={{ __html: themeCss }} />}
       </head>
       <body>

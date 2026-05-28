@@ -37,11 +37,12 @@ export default function ServerStatusWidget() {
 
   if (loading) {
     return (
-      <div className="bg-surface border border-border rounded-lg p-6 shadow-[0_0_20px_var(--color-glow)]">
+      <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 6, padding: 20 }}>
         <div className="animate-pulse space-y-3">
-          <div className="h-4 bg-surface-2 rounded w-1/3" />
-          <div className="h-8 bg-surface-2 rounded" />
-          <div className="h-8 bg-surface-2 rounded" />
+          <div style={{ height: 10, background: 'var(--color-surface-2)', borderRadius: 3, width: '40%', marginBottom: 12 }} />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} style={{ height: 28, background: 'var(--color-surface-2)', borderRadius: 3 }} />
+          ))}
         </div>
       </div>
     )
@@ -49,67 +50,89 @@ export default function ServerStatusWidget() {
 
   if (error) {
     return (
-      <div className="bg-surface border border-danger rounded-lg p-6">
-        <p className="text-danger text-sm">{error}</p>
+      <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-danger)', borderRadius: 6, padding: 20 }}>
+        <p style={{ color: 'var(--color-danger)', fontFamily: 'var(--font-display)', fontSize: '0.8rem' }}>{error}</p>
       </div>
     )
   }
 
   return (
-    <div className="bg-surface border border-border rounded-lg shadow-[0_0_20px_var(--color-glow)] p-6">
-      <h2 className="font-display text-primary tracking-widest uppercase text-sm mb-4">
-        Server Status
-      </h2>
-      <div className="space-y-3">
-        {channels.map((ch) => {
-          const loadPercent = Math.min(100, (ch.playerCount / ch.maxPlayers) * 100)
-          const loadColorClass = loadPercent >= 70 ? 'bg-danger' : loadPercent >= 30 ? 'bg-warning' : 'bg-success'
-          
-          return (
-            <div key={ch.channelId} className="flex items-center gap-3">
-              {/* Online-Indikator */}
-              <span
-                className={`shrink-0 w-2 h-2 rounded-full ${
-                  ch.online
-                    ? 'bg-success shadow-[0_0_6px_var(--color-success)] animate-pulse'
-                    : 'bg-muted'
-                }`}
-              />
-
-              {/* Channel-Name */}
-              <span className="text-text text-sm w-28 shrink-0">{ch.name}</span>
-
-              {/* Badge */}
-              <span
-                className={`text-xs px-2 py-0.5 rounded shrink-0 ${
-                  ch.online ? 'bg-success/10 text-success' : 'bg-muted/10 text-muted'
-                }`}
-              >
-                {ch.online ? 'Online' : 'Offline'}
-              </span>
-
-              {/* Spieleranzahl */}
-              <span className="text-muted text-xs shrink-0">
-                {ch.playerCount}/{ch.maxPlayers}
-              </span>
-
-              {/* Load-Bar */}
-              {ch.online && (
-                <div className="flex-1 h-1.5 bg-surface-2 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${loadColorClass}`}
-                    style={{ width: `${loadPercent}%` }}
-                  />
-                </div>
-              )}
-            </div>
-          )
-        })}
-
-        {channels.length === 0 && (
-          <p className="text-muted text-sm">Keine Channel-Daten verfügbar.</p>
-        )}
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 6, overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px 16px', background: 'var(--color-surface-2)',
+        borderBottom: '2px solid var(--color-primary)',
+      }}>
+        <h2 style={{
+          fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.75rem',
+          color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0,
+        }}>
+          Server Status
+        </h2>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>
+          Auto-Refresh 60s
+        </span>
       </div>
+
+      {/* Channel-Tabelle */}
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+            {['Channel', 'Status', 'Spieler'].map(h => (
+              <th key={h} style={{
+                padding: '8px 14px', textAlign: 'left',
+                fontFamily: 'var(--font-display)', fontWeight: 700,
+                fontSize: '0.6rem', textTransform: 'uppercase',
+                letterSpacing: '0.08em', color: 'var(--color-text-muted)',
+              }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {channels.map((ch, idx) => (
+            <tr
+              key={ch.channelId}
+              style={{ background: idx % 2 === 0 ? '#141418' : '#111318' }}
+            >
+              <td style={{ padding: '9px 14px', fontFamily: 'var(--font-display)', fontSize: '0.8rem', color: 'var(--color-text)' }}>
+                {ch.name}
+              </td>
+              <td style={{ padding: '9px 14px' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{
+                    width: 7, height: 7, borderRadius: '50%',
+                    background: ch.online ? 'var(--color-success)' : 'var(--color-danger)',
+                    boxShadow: ch.online ? '0 0 5px var(--color-success)' : 'none',
+                    display: 'inline-block',
+                  }} />
+                  <span style={{
+                    fontFamily: 'var(--font-display)', fontSize: '0.72rem',
+                    color: ch.online ? 'var(--color-success)' : 'var(--color-text-muted)',
+                    fontWeight: 600,
+                  }}>
+                    {ch.online ? 'Online' : 'Offline'}
+                  </span>
+                </span>
+              </td>
+              <td style={{
+                padding: '9px 14px',
+                fontFamily: 'var(--font-display)', fontSize: '0.8rem',
+                color: ch.online ? 'var(--color-text)' : 'var(--color-text-muted)',
+              }}>
+                {ch.online ? `${ch.playerCount} / ${ch.maxPlayers}` : '—'}
+              </td>
+            </tr>
+          ))}
+          {channels.length === 0 && (
+            <tr>
+              <td colSpan={3} style={{ padding: '16px 14px', fontFamily: 'var(--font-display)', fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center' }}>
+                Keine Channel-Daten verfügbar.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   )
 }

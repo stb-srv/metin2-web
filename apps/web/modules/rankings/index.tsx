@@ -2,10 +2,6 @@
 
 import React, { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { StatusDot } from "@/components/ui/status-dot"
 import { ModuleErrorBoundary } from "@/lib/module-loader"
 import TopRankingPreview from "./components/TopRankingPreview"
 
@@ -30,6 +26,36 @@ type RankingGuild = {
   level: number
   exp: number
   member_count: number
+}
+
+const EMPIRE_DOT_COLOR: Record<number, string> = {
+  1: "#c0392b", // Shinsoo — Rot
+  2: "#f1c40f", // Chunjo — Gelb
+  3: "#3498db", // Jinno — Blau
+}
+
+const EMPIRE_NAME: Record<number, string> = {
+  1: "Shinsoo",
+  2: "Chunjo",
+  3: "Jinno",
+}
+
+const JOB_ABBREV: Record<number, string> = {
+  0: "KR",
+  1: "KR(w)",
+  2: "NJ",
+  3: "NJ(w)",
+  4: "SU",
+  5: "SU(w)",
+  6: "SM",
+  7: "SM(w)",
+}
+
+function rankIcon(rank: number) {
+  if (rank === 1) return "🥇"
+  if (rank === 2) return "🥈"
+  if (rank === 3) return "🥉"
+  return rank
 }
 
 function RankingsContent() {
@@ -60,201 +86,147 @@ function RankingsContent() {
     setPage(1)
   }
 
-  const getJobName = (job: number) => {
-    const jobs: Record<number, string> = {
-      0: 'Krieger',
-      1: 'Krieger(w)',
-      2: 'Ninja',
-      3: 'Ninja(w)',
-      4: 'Sura',
-      5: 'Sura(w)',
-      6: 'Schamane',
-      7: 'Schamane(w)',
-    }
-    return jobs[job] || 'Lykaner'
-  }
-
-  const getJobAbbreviation = (job: number) => {
-    const abbrev: Record<number, string> = {
-      0: 'KR',
-      1: 'KR(w)',
-      2: 'NJ',
-      3: 'NJ(w)',
-      4: 'SU',
-      5: 'SU(w)',
-      6: 'SM',
-      7: 'SM(w)',
-    }
-    return abbrev[job] || 'LY'
-  }
-
-  const getEmpireColor = (empire: number) => {
-    switch (empire) {
-      case 1: return "text-[#e74c3c]" // Shinsoo (Rot)
-      case 2: return "text-[#f1c40f]" // Chunjo (Gelb)
-      case 3: return "text-[#3498db]" // Jinno (Blau)
-      default: return "text-text"
-    }
-  }
-
-  const getEmpireName = (empire: number) => {
-    switch (empire) {
-      case 1: return "Shinsoo"
-      case 2: return "Chunjo"
-      case 3: return "Jinno"
-      default: return "Unbekannt"
-    }
-  }
-
-  const getRankHighlight = (rank: number) => {
-    if (rank === 1) return "bg-primary/10 border-primary/50 shadow-[inset_0_0_20px_var(--color-glow)]"
-    if (rank === 2) return "bg-slate-300/10 border-slate-300/40 shadow-[inset_0_0_15px_rgba(203,213,225,0.08)]"
-    if (rank === 3) return "bg-amber-700/10 border-amber-700/40 shadow-[inset_0_0_15px_rgba(180,83,9,0.08)]"
-    return "border-border/10 hover:bg-surface-2/40"
-  }
-
-  const getRankIconHighlight = (rank: number) => {
-    if (rank === 1) return "text-bg bg-primary border-primary shadow-[0_0_8px_var(--color-primary)]"
-    if (rank === 2) return "text-bg bg-slate-300 border-slate-300 shadow-[0_0_8px_rgba(203,213,225,0.5)]"
-    if (rank === 3) return "text-bg bg-amber-700 border-amber-700 shadow-[0_0_8px_rgba(180,83,9,0.5)]"
-    return "text-text-muted border-border/30 bg-surface-2"
-  }
-
   const totalPages = Math.ceil(total / limit)
 
   return (
-    <Card className="w-full bg-surface border-border/30 shadow-[0_0_20px_var(--color-glow)]">
-      <CardHeader className="border-b border-border/20 pb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <CardTitle className="font-display text-2xl text-primary tracking-wider uppercase font-bold">Rangliste</CardTitle>
-          <div className="flex gap-2 bg-surface-2/80 p-1 rounded-md border border-border/30">
-            <Button 
-              variant={activeTab === "level" ? "default" : "ghost"} 
-              size="sm"
-              onClick={() => handleTabChange("level")}
-              className={`font-display uppercase tracking-wider text-xs px-4 ${activeTab === "level" ? "bg-primary text-bg hover:bg-primary/90 font-bold shadow-none" : "text-text-muted hover:text-text"}`}
-            >
-              Level-Ranking
-            </Button>
-            <Button 
-              variant={activeTab === "guild" ? "default" : "ghost"} 
-              size="sm"
-              onClick={() => handleTabChange("guild")}
-              className={`font-display uppercase tracking-wider text-xs px-4 ${activeTab === "guild" ? "bg-primary text-bg hover:bg-primary/90 font-bold shadow-none" : "text-text-muted hover:text-text"}`}
-            >
-              Gilden-Ranking
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-6">
+    <div className="w-full">
+      {/* Tab-Leiste */}
+      <div className="flex border-b border-[var(--color-border)] mb-0">
+        {(["level", "guild"] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => handleTabChange(tab)}
+            style={activeTab === tab ? {
+              color: "var(--color-primary)",
+              borderBottom: "2px solid var(--color-primary)",
+              fontFamily: "var(--font-display)",
+            } : {
+              color: "var(--color-text-muted)",
+              borderBottom: "2px solid transparent",
+              fontFamily: "var(--font-display)",
+            }}
+            className="px-6 py-3 text-sm font-bold uppercase tracking-widest transition-all hover:text-text"
+          >
+            {tab === "level" ? "Spieler-Ranking" : "Gilden-Ranking"}
+          </button>
+        ))}
+      </div>
+
+      {/* Tabelle */}
+      <div
+        className="rounded-b-md overflow-hidden"
+        style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderTop: "none" }}
+      >
         {loading ? (
-          <div className="text-center py-20 text-text-muted font-display tracking-widest animate-pulse">
-            Daten werden abgerufen...
+          <div className="py-16 text-center" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-display)" }}>
+            <div className="inline-block w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mr-3" />
+            Daten werden geladen…
           </div>
         ) : data.length === 0 ? (
-          <div className="text-center py-20 text-text-muted font-display">
+          <div className="py-16 text-center" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-display)" }}>
             Keine Einträge gefunden.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left" style={{ borderCollapse: "collapse" }}>
               <thead>
-                <tr className="text-xs text-text-muted uppercase font-display tracking-widest border-b border-border/20">
-                  <th className="p-4 w-16 text-center">#</th>
-                  {activeTab !== "guild" ? (
+                <tr style={{ background: "var(--color-surface-2)", borderBottom: "1px solid var(--color-border)" }}>
+                  {activeTab === "level" ? (
                     <>
-                      <th className="p-4 w-20 text-center">Klasse</th>
-                      <th className="p-4">Name</th>
-                      <th className="p-4 text-center">Level</th>
-                      <th className="p-4 text-center">Reich</th>
-                      <th className="p-4 text-center">Status</th>
+                      <th className="px-4 py-3 text-center w-14" style={thStyle}>#</th>
+                      <th className="px-4 py-3" style={thStyle}>Spieler</th>
+                      <th className="px-4 py-3 text-center" style={thStyle}>Level</th>
+                      <th className="px-4 py-3 text-center" style={thStyle}>Gilde</th>
+                      <th className="px-4 py-3 text-center" style={thStyle}>Reich</th>
                     </>
                   ) : (
                     <>
-                      <th className="p-4">Gilde</th>
-                      <th className="p-4 text-center">Level</th>
-                      <th className="p-4 text-center">Mitglieder</th>
-                      <th className="p-4 text-center">Punkte / EXP</th>
+                      <th className="px-4 py-3 text-center w-14" style={thStyle}>#</th>
+                      <th className="px-4 py-3" style={thStyle}>Gilde</th>
+                      <th className="px-4 py-3 text-center" style={thStyle}>Mitglieder</th>
+                      <th className="px-4 py-3 text-center" style={thStyle}>Level</th>
+                      <th className="px-4 py-3 text-center" style={thStyle}>Punkte</th>
                     </>
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/5">
-                {activeTab !== "guild" ? (
-                  (data as RankingPlayer[]).map((player) => (
-                    <tr 
-                      key={player.id} 
-                      className={`transition-colors border border-transparent ${getRankHighlight(player.rank)}`}
+              <tbody>
+                {activeTab === "level"
+                  ? (data as RankingPlayer[]).map((player, idx) => (
+                    <tr
+                      key={player.id}
+                      style={{
+                        background: idx % 2 === 0 ? "#141418" : "#111318",
+                        transition: "background 0.15s ease",
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(192,57,43,0.08)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = idx % 2 === 0 ? "#141418" : "#111318")}
                     >
-                      <td className="p-4 text-center font-display font-bold text-lg">
-                        {player.rank === 1 ? '🥇' : player.rank === 2 ? '🥈' : player.rank === 3 ? '🥉' : player.rank}
+                      <td className="px-4 py-3 text-center" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "1rem", minWidth: 48 }}>
+                        {rankIcon(player.rank)}
                       </td>
-                      <td className="p-4">
-                        <div className="flex justify-center">
-                          <div className={`hex-icon w-10 h-10 flex items-center justify-center font-display font-bold text-xs ${getRankIconHighlight(player.rank)}`}>
-                            {getJobAbbreviation(player.job)}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <Link 
+                      <td className="px-4 py-3">
+                        <Link
                           href={`/character/${encodeURIComponent(player.name)}`}
-                          className="font-medium text-text hover:text-primary transition-colors cursor-pointer font-display tracking-wide hover:underline decoration-primary/40 decoration-dotted"
+                          style={{ fontFamily: "var(--font-display)", fontWeight: 600, color: "var(--color-text)", textDecoration: "none", transition: "color 0.15s" }}
+                          onMouseEnter={e => (e.currentTarget.style.color = "var(--color-primary)")}
+                          onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text)")}
                         >
                           {player.name}
                         </Link>
-                        {player.guild_name && (
-                          <div className="text-xs text-text-muted mt-0.5">
-                            Gilde:{" "}
-                            <span className="text-primary/80 font-semibold">
-                              [{player.guild_name}]
-                            </span>
-                          </div>
-                        )}
+                        <div style={{ fontSize: "0.7rem", color: "var(--color-text-muted)", fontFamily: "var(--font-display)" }}>
+                          {JOB_ABBREV[player.job] ?? "?"}
+                        </div>
                       </td>
-                      <td className="p-4 text-center font-display text-primary font-bold text-lg">
+                      <td className="px-4 py-3 text-center" style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--color-primary)" }}>
                         {player.level}
                       </td>
-                      <td className={`p-4 text-center font-bold font-display text-sm tracking-wide ${getEmpireColor(player.empire)}`}>
-                        {getEmpireName(player.empire)}
+                      <td className="px-4 py-3 text-center" style={{ fontFamily: "var(--font-display)", fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
+                        {player.guild_name ? `[${player.guild_name}]` : "—"}
                       </td>
-                      <td className="p-4 text-center">
-                        <div className="flex justify-center">
-                          <Badge variant={player.status === "online" ? "success" : "default"} className="gap-2 px-3 py-1">
-                            <StatusDot status={player.status} />
-                            {player.status === "online" ? "Online" : "Offline"}
-                          </Badge>
-                        </div>
+                      <td className="px-4 py-3 text-center">
+                        <span
+                          title={EMPIRE_NAME[player.empire] ?? "Unbekannt"}
+                          style={{
+                            display: "inline-block",
+                            width: 10,
+                            height: 10,
+                            borderRadius: "50%",
+                            background: EMPIRE_DOT_COLOR[player.empire] ?? "var(--color-text-muted)",
+                            boxShadow: player.empire ? `0 0 5px ${EMPIRE_DOT_COLOR[player.empire]}` : "none",
+                          }}
+                        />
                       </td>
                     </tr>
                   ))
-                ) : (
-                  (data as RankingGuild[]).map((guild) => (
-                    <tr 
-                      key={guild.id} 
-                      className={`transition-colors border border-transparent ${getRankHighlight(guild.rank)}`}
+                  : (data as RankingGuild[]).map((guild, idx) => (
+                    <tr
+                      key={guild.id}
+                      style={{
+                        background: idx % 2 === 0 ? "#141418" : "#111318",
+                        transition: "background 0.15s ease",
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(192,57,43,0.08)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = idx % 2 === 0 ? "#141418" : "#111318")}
                     >
-                      <td className="p-4 text-center font-display font-bold text-lg">
-                        {guild.rank === 1 ? '🥇' : guild.rank === 2 ? '🥈' : guild.rank === 3 ? '🥉' : guild.rank}
+                      <td className="px-4 py-3 text-center" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "1rem" }}>
+                        {rankIcon(guild.rank)}
                       </td>
-                      <td className="p-4">
-                        <span className="font-medium text-text font-display tracking-wide text-lg">
-                          {guild.name}
-                        </span>
+                      <td className="px-4 py-3" style={{ fontFamily: "var(--font-display)", fontWeight: 600, color: "var(--color-text)" }}>
+                        {guild.name}
                       </td>
-                      <td className="p-4 text-center font-display text-primary font-bold text-lg">
-                        {guild.level}
-                      </td>
-                      <td className="p-4 text-center font-display text-text font-medium">
+                      <td className="px-4 py-3 text-center" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-display)" }}>
                         {guild.member_count}
                       </td>
-                      <td className="p-4 text-center font-display text-warning font-semibold">
+                      <td className="px-4 py-3 text-center" style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--color-primary)" }}>
+                        {guild.level}
+                      </td>
+                      <td className="px-4 py-3 text-center" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-display)" }}>
                         {guild.exp.toLocaleString()}
                       </td>
                     </tr>
                   ))
-                )}
+                }
               </tbody>
             </table>
           </div>
@@ -262,37 +234,66 @@ function RankingsContent() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/20">
-            <span className="text-xs text-text-muted">
-              Einträge {(page - 1) * limit + 1} - {Math.min(page * limit, total)} von {total}
+          <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: "1px solid var(--color-border)" }}>
+            <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", fontFamily: "var(--font-display)" }}>
+              {(page - 1) * limit + 1}–{Math.min(page * limit, total)} von {total}
             </span>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                className="text-text-muted hover:text-text border border-border/10 hover:bg-surface-2 px-3 text-xs uppercase font-display"
-              >
-                Zurück
-              </Button>
-              <span className="text-xs font-display font-semibold px-2 text-primary">
-                {page} / {totalPages}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={page === totalPages}
-                onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
-                className="text-text-muted hover:text-text border border-border/10 hover:bg-surface-2 px-3 text-xs uppercase font-display"
-              >
-                Weiter
-              </Button>
+            <div className="flex items-center gap-1">
+              <PagBtn onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>← Zurück</PagBtn>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const p = Math.max(1, Math.min(totalPages - 4, page - 2)) + i
+                return (
+                  <PagBtn key={p} onClick={() => setPage(p)} active={p === page}>
+                    {p}
+                  </PagBtn>
+                )
+              })}
+              <PagBtn onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Weiter →</PagBtn>
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
+  )
+}
+
+const thStyle: React.CSSProperties = {
+  fontFamily: "var(--font-display)",
+  fontWeight: 700,
+  fontSize: "0.7rem",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "var(--color-text-muted)",
+}
+
+function PagBtn({ children, onClick, disabled, active }: {
+  children: React.ReactNode
+  onClick: () => void
+  disabled?: boolean
+  active?: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        minWidth: 32,
+        height: 28,
+        padding: "0 8px",
+        borderRadius: 4,
+        border: active ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
+        background: active ? "var(--color-primary)" : "transparent",
+        color: active ? "#fff" : "var(--color-text-muted)",
+        fontFamily: "var(--font-display)",
+        fontWeight: 700,
+        fontSize: "0.75rem",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.4 : 1,
+        transition: "all 0.15s",
+      }}
+    >
+      {children}
+    </button>
   )
 }
 

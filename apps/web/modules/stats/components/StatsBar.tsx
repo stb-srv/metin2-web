@@ -22,24 +22,57 @@ function useCountUp(target: number, duration = 1200) {
       if (progress < 1) rafRef.current = requestAnimationFrame(animate)
     }
     rafRef.current = requestAnimationFrame(animate)
-    return () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
-    }
+    return () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current) }
   }, [target, duration])
 
   return value
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({
+  label, value, isOnline = false,
+}: { label: string; value: number; isOnline?: boolean }) {
   const display = useCountUp(value)
+
   return (
-    <div className="bg-surface border border-border rounded-lg p-5 flex flex-col items-center
-                    shadow-[0_0_20px_var(--color-glow)] hover:shadow-[0_0_32px_var(--color-glow)]
-                    hover:border-primary transition-all">
-      <span className="font-display text-primary text-2xl tracking-wider">
-        {display.toLocaleString('de-DE')}
+    <div style={{
+      background: 'var(--color-surface)',
+      border: '1px solid var(--color-border)',
+      borderLeft: '3px solid var(--color-primary)',
+      borderRadius: '0 6px 6px 0',
+      padding: '18px 20px',
+      display: 'flex', flexDirection: 'column',
+      transition: 'border-color 0.15s',
+    }}
+    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-primary)'}
+    onMouseLeave={e => {
+      e.currentTarget.style.borderTopColor = 'var(--color-border)'
+      e.currentTarget.style.borderRightColor = 'var(--color-border)'
+      e.currentTarget.style.borderBottomColor = 'var(--color-border)'
+    }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+        <span style={{
+          fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '2.2rem',
+          color: isOnline ? 'var(--color-success)' : 'var(--color-text)',
+          lineHeight: 1,
+        }}>
+          {display.toLocaleString('de-DE')}
+        </span>
+        {isOnline && (
+          <span style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: 'var(--color-success)',
+            boxShadow: '0 0 6px var(--color-success)',
+            display: 'inline-block', flexShrink: 0,
+          }} className="animate-pulse" />
+        )}
+      </div>
+      <span style={{
+        fontFamily: 'var(--font-display)', fontSize: '0.65rem', fontWeight: 700,
+        textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)',
+      }}>
+        {label}
       </span>
-      <span className="text-muted text-xs mt-1 uppercase tracking-widest">{label}</span>
     </div>
   )
 }
@@ -50,26 +83,22 @@ export default function StatsBar() {
 
   useEffect(() => {
     fetch('/api/modules/stats')
-      .then((r) => {
-        if (!r.ok) throw new Error()
-        return r.json() as Promise<Stats>
-      })
+      .then(r => { if (!r.ok) throw new Error(); return r.json() as Promise<Stats> })
       .then(setStats)
       .catch(() => setError('Stats konnten nicht geladen werden'))
   }, [])
 
-  if (error) {
-    return <p className="text-danger text-sm text-center">{error}</p>
-  }
+  if (error) return <p style={{ color: 'var(--color-danger)', fontFamily: 'var(--font-display)', fontSize: '0.8rem' }}>{error}</p>
 
   if (!stats) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-surface border border-border rounded-lg p-5 animate-pulse">
-            <div className="h-7 bg-surface-2 rounded mb-2" />
-            <div className="h-3 bg-surface-2 rounded w-2/3 mx-auto" />
-          </div>
+          <div key={i} style={{
+            background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+            borderLeft: '3px solid var(--color-primary)', borderRadius: '0 6px 6px 0',
+            padding: 20, height: 80,
+          }} className="animate-pulse" />
         ))}
       </div>
     )
@@ -77,10 +106,10 @@ export default function StatsBar() {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <StatCard label="Accounts" value={stats.totalAccounts} />
-      <StatCard label="Online" value={stats.onlinePlayers} />
-      <StatCard label="Gilden" value={stats.totalGuilds} />
-      <StatCard label="Max Level" value={stats.maxLevel} />
+      <StatCard label="Accounts gesamt"  value={stats.totalAccounts} />
+      <StatCard label="Spieler online"   value={stats.onlinePlayers} isOnline />
+      <StatCard label="Gilden"           value={stats.totalGuilds} />
+      <StatCard label="Max. Level"       value={stats.maxLevel} />
     </div>
   )
 }

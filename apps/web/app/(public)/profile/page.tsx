@@ -3,10 +3,7 @@
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { User, Mail, Shield, Key, LogOut, ArrowRight, Activity, Calendar, Coins } from "lucide-react"
+import { LogOut, ArrowRight } from "lucide-react"
 
 import PasswordForm from "./components/PasswordForm"
 import DeleteCodeForm from "./components/DeleteCodeForm"
@@ -21,6 +18,12 @@ interface ProfileDetails {
   createdAt: string
 }
 
+const ROLE_STYLE: Record<string, { label: string; color: string; bg: string }> = {
+  ADMIN:     { label: "Administrator", color: "#e74c3c", bg: "rgba(231,76,60,0.15)" },
+  MODERATOR: { label: "Moderator",     color: "#3498db", bg: "rgba(52,152,219,0.15)" },
+  USER:      { label: "Spieler",       color: "var(--color-text-muted)", bg: "rgba(255,255,255,0.05)" },
+}
+
 export default function ProfilePage() {
   const { data: session, status } = useSession()
   const [profile, setProfile] = useState<ProfileDetails | null>(null)
@@ -29,175 +32,194 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (session?.user) {
-      // 1. Fetch profile details (for registration date)
       fetch("/api/profile")
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data) setProfile(data)
-        })
-        .catch((err) => console.error("Error loading profile", err))
+        .then(res => res.ok ? res.json() : null)
+        .then(data => { if (data) setProfile(data) })
+        .catch(err => console.error("Error loading profile", err))
         .finally(() => setLoadingDetails(false))
 
-      // 2. Fetch coin balance
       fetch("/api/coins/balance")
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data) setBalance(data)
-        })
-        .catch((err) => console.error("Error loading balance", err))
+        .then(res => res.ok ? res.json() : null)
+        .then(data => { if (data) setBalance(data) })
+        .catch(err => console.error("Error loading balance", err))
     }
   }, [session])
 
   if (status === "loading" || (session && loadingDetails)) {
     return (
-      <div className="flex items-center justify-center min-h-[400px] text-text-muted font-display tracking-widest animate-pulse">
-        Profil-Details werden geladen...
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 400, color: "var(--color-text-muted)", fontFamily: "var(--font-display)" }}>
+        <span className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" style={{ marginRight: 12 }} />
+        Profil-Daten werden geladen…
       </div>
     )
   }
 
   if (!session?.user) {
     return (
-      <div className="max-w-md mx-auto text-center py-20 space-y-6">
-        <div className="hex-icon w-16 h-16 mx-auto flex items-center justify-center bg-surface-2 border border-danger/30 text-danger shadow-[0_0_15px_rgba(224,90,58,0.15)]">
-          <Shield className="w-6 h-6" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl font-display text-danger uppercase tracking-wider">Nicht Angemeldet</h2>
-          <p className="text-text-muted text-sm">
-            Du musst angemeldet sein, um auf diese Seite zuzugreifen.
-          </p>
-        </div>
-        <div className="flex justify-center gap-4">
-          <Link href="/login" className="w-full">
-            <Button className="w-full bg-primary text-bg font-display uppercase tracking-wider hover:bg-primary/95">
-              Zum Login <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </Link>
-        </div>
+      <div style={{ maxWidth: 400, margin: "0 auto", textAlign: "center", paddingTop: 80 }}>
+        <div style={{ fontSize: "3rem", marginBottom: 16 }}>🔐</div>
+        <h2 style={{ fontFamily: "var(--font-display)", color: "var(--color-danger)", fontSize: "1.5rem", textTransform: "uppercase", marginBottom: 8 }}>
+          Nicht angemeldet
+        </h2>
+        <p style={{ color: "var(--color-text-muted)", marginBottom: 24, fontFamily: "var(--font-body)", fontSize: "0.9rem" }}>
+          Du musst angemeldet sein, um auf diese Seite zuzugreifen.
+        </p>
+        <Link href="/login" style={{
+          display: "inline-flex", alignItems: "center", gap: 8,
+          background: "var(--color-primary)", color: "#fff",
+          padding: "10px 24px", borderRadius: 4,
+          fontFamily: "var(--font-display)", fontWeight: 700,
+          fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.08em",
+          textDecoration: "none",
+        }}>
+          Zum Login <ArrowRight size={14} />
+        </Link>
       </div>
     )
   }
 
   const user = session.user
-  const registerDate = profile?.createdAt 
-    ? new Date(profile.createdAt).toLocaleDateString("de-DE", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
+  const roleInfo = ROLE_STYLE[user.role ?? "USER"] ?? ROLE_STYLE.USER
+  const registerDate = profile?.createdAt
+    ? new Date(profile.createdAt).toLocaleDateString("de-DE", { year: "numeric", month: "long", day: "numeric" })
     : "Unbekannt"
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      
-      <div className="flex flex-col gap-2">
-        <h1 className="font-display text-3xl text-primary uppercase tracking-widest">
-          Mein Profil
-        </h1>
-        <p className="text-text-muted text-sm">
-          Verwalte deine CMS-Account Details, Sicherheitseinstellungen und Charaktere.
+    <div className="space-y-6" style={{ maxWidth: 1100 }}>
+      <div>
+        <h1 className="section-header" style={{ fontSize: "1.8rem", display: "inline-block" }}>Mein Profil</h1>
+        <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem", marginTop: 6, fontFamily: "var(--font-body)" }}>
+          Verwalte deine Account-Details, Sicherheitseinstellungen und Charaktere.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Linke Spalte: Account-Übersicht & Charaktere */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="bg-surface border-border/30 shadow-[0_0_20px_var(--color-glow)]">
-            <CardHeader className="border-b border-border/20 pb-6 text-center sm:text-left">
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="hex-icon w-16 h-16 flex items-center justify-center bg-surface-2 border-2 border-primary/50 text-primary font-display font-bold text-2xl shadow-[0_0_12px_var(--color-glow)]">
-                  {user.name ? user.name.slice(0, 2).toUpperCase() : "US"}
-                </div>
-                <div className="space-y-1 text-center sm:text-left">
-                  <CardTitle className="font-display text-2xl text-text tracking-wide">{user.name || "Spieler"}</CardTitle>
-                  <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-                    <Badge variant={user.role === "ADMIN" ? "danger" : "accent"}>
-                      {user.role === "ADMIN" ? "Administrator" : "Spieler"}
-                    </Badge>
-                    <Badge variant="default" className="bg-surface-2 border-border/10 text-text-muted">
-                      Ingame-ID: {user.accountId}
-                    </Badge>
-                  </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
+        {/* ── Linke Spalte ── */}
+        <div className="space-y-5">
+          {/* Account-Box */}
+          <div style={{
+            background: "var(--color-surface)", border: "1px solid var(--color-border)",
+            borderRadius: 6, overflow: "hidden",
+          }}>
+            {/* Header */}
+            <div style={{
+              background: "var(--color-surface-2)", padding: "20px 24px",
+              borderBottom: "1px solid var(--color-border)",
+              display: "flex", alignItems: "center", gap: 16,
+            }}>
+              {/* Initial-Kreis */}
+              <div style={{
+                width: 64, height: 64, borderRadius: "50%",
+                background: "rgba(192,57,43,0.2)", border: "2px solid rgba(192,57,43,0.5)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "1.6rem",
+                color: "var(--color-primary)", flexShrink: 0,
+              }}>
+                {user.name ? user.name[0].toUpperCase() : "U"}
+              </div>
+              <div>
+                <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "1.3rem", color: "var(--color-text)", margin: 0 }}>
+                  {user.name || "Spieler"}
+                </h2>
+                <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+                  <span style={{
+                    background: roleInfo.bg, color: roleInfo.color,
+                    border: `1px solid ${roleInfo.color}40`,
+                    borderRadius: 4, padding: "2px 10px",
+                    fontFamily: "var(--font-display)", fontSize: "0.7rem",
+                    fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em",
+                  }}>
+                    {roleInfo.label}
+                  </span>
+                  <span style={{
+                    background: "rgba(255,255,255,0.05)", color: "var(--color-text-muted)",
+                    borderRadius: 4, padding: "2px 10px", border: "1px solid var(--color-border)",
+                    fontFamily: "var(--font-display)", fontSize: "0.7rem",
+                  }}>
+                    ID: {user.accountId}
+                  </span>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-6">
-              <div className="space-y-4">
-                <h3 className="font-display text-sm text-text-muted uppercase tracking-wider border-b border-border/10 pb-1">
-                  Account-Daten
-                </h3>
-                
-                {/* Name */}
-                <div className="flex justify-between items-center text-sm border-b border-border/10 pb-3">
-                  <span className="text-text-muted flex items-center">
-                    <User className="w-4.5 h-4.5 mr-2.5 text-primary" /> Account-Name
-                  </span>
-                  <span className="font-semibold text-text">{user.name}</span>
-                </div>
+            </div>
 
-                {/* Email */}
-                <div className="flex justify-between items-center text-sm border-b border-border/10 pb-3">
-                  <span className="text-text-muted flex items-center">
-                    <Mail className="w-4.5 h-4.5 mr-2.5 text-primary" /> E-Mail-Adresse
-                  </span>
-                  <span className="font-semibold text-text">{user.email}</span>
-                </div>
+            {/* Details */}
+            <div style={{ padding: "20px 24px" }}>
+              <h3 style={{
+                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.7rem",
+                textTransform: "uppercase", letterSpacing: "0.1em",
+                color: "var(--color-text-muted)", borderBottom: "1px solid var(--color-border)",
+                paddingBottom: 8, marginBottom: 16,
+              }}>
+                Account-Daten
+              </h3>
 
-                {/* Registrierungsdatum */}
-                <div className="flex justify-between items-center text-sm border-b border-border/10 pb-3">
-                  <span className="text-text-muted flex items-center">
-                    <Calendar className="w-4.5 h-4.5 mr-2.5 text-primary" /> Registriert am
+              {[
+                { label: "Account-Name", value: user.name },
+                { label: "E-Mail-Adresse", value: user.email },
+                { label: "Registriert am", value: registerDate },
+              ].map(({ label, value }) => (
+                <div key={label} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "10px 0", borderBottom: "1px solid var(--color-border)",
+                }}>
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: "0.8rem", color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    {label}
                   </span>
-                  <span className="font-semibold text-text">{registerDate}</span>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: "0.85rem", color: "var(--color-text)", fontWeight: 600 }}>
+                    {value}
+                  </span>
                 </div>
+              ))}
 
-                {/* Coin Balances */}
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-text-muted flex items-center">
-                    <Coins className="w-4.5 h-4.5 mr-2.5 text-primary" /> Kontostand
+              {/* Kontostand */}
+              <div style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "10px 0", borderBottom: "1px solid var(--color-border)",
+              }}>
+                <span style={{ fontFamily: "var(--font-display)", fontSize: "0.8rem", color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                  Kontostand
+                </span>
+                <div style={{ display: "flex", gap: 12, fontFamily: "var(--font-display)", fontSize: "0.85rem" }}>
+                  <span style={{ color: "var(--color-primary)", fontWeight: 700 }}>
+                    💰 {(balance?.dr || 0).toLocaleString()} DR
                   </span>
-                  <div className="flex items-center gap-3 text-xs font-display">
-                    <span className="text-primary flex items-center gap-1 bg-surface-2 px-2.5 py-1 border border-border/10 rounded">
-                      💰 <span className="font-bold text-text">{(balance?.dr || 0).toLocaleString()}</span> DR
-                    </span>
-                    <span className="text-accent flex items-center gap-1 bg-surface-2 px-2.5 py-1 border border-border/10 rounded">
-                      💎 <span className="font-bold text-text">{(balance?.dm || 0).toLocaleString()}</span> DM
-                    </span>
-                  </div>
+                  <span style={{ color: "var(--color-success)", fontWeight: 700 }}>
+                    💎 {(balance?.dm || 0).toLocaleString()} DM
+                  </span>
                 </div>
               </div>
 
-              <div className="bg-surface-2/45 p-4 rounded-lg border border-border/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6">
-                <div className="space-y-0.5">
-                  <div className="text-xs text-text-muted uppercase tracking-wider flex items-center gap-1.5 font-display">
-                    <Activity className="w-3.5 h-3.5 text-success animate-pulse" /> Sicherheitshinweis
-                  </div>
-                  <div className="text-xs text-text-muted">
-                    Gib deine Zugangsdaten oder deinen Löschcode niemals an Dritte weiter.
-                  </div>
-                </div>
-                <Button 
+              {/* Abmelden */}
+              <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end" }}>
+                <button
                   onClick={() => signOut({ callbackUrl: "/login" })}
-                  className="bg-danger/20 hover:bg-danger/30 text-danger border border-danger/30 font-display text-xs uppercase tracking-wider px-4 py-2 hover:shadow-[0_0_12px_rgba(224,90,58,0.15)] transition-all"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    background: "rgba(231,76,60,0.1)", border: "1px solid rgba(231,76,60,0.3)",
+                    color: "var(--color-danger)", borderRadius: 4,
+                    padding: "8px 16px", cursor: "pointer",
+                    fontFamily: "var(--font-display)", fontWeight: 700,
+                    fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.06em",
+                    transition: "all 0.15s",
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(231,76,60,0.2)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "rgba(231,76,60,0.1)"}
                 >
-                  <LogOut className="w-4 h-4 mr-2" /> Abmelden
-                </Button>
+                  <LogOut size={14} /> Abmelden
+                </button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Charaktere */}
           <CharacterList />
         </div>
 
-        {/* Rechte Spalte: Formulare */}
-        <div className="space-y-6">
+        {/* ── Rechte Spalte: Formulare ── */}
+        <div className="space-y-5">
           <PasswordForm />
           <DeleteCodeForm />
         </div>
-
       </div>
     </div>
   )
