@@ -22,7 +22,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ServerStatusModule />
         <NewsModule />
-        <RankingsModule />
+        <RankingsModule preview={true} />
       </div>
     </main>
   )
