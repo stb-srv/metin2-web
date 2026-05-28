@@ -29,3 +29,19 @@ Siehe [ARCHITECTURE.md](./ARCHITECTURE.md) für die vollständige Dokumentation.
 - 🔒 Read-only Zugriff auf die Metin2-Spieler-DB
 - ⚙️ Admin-Panel für Modul- und Theme-Verwaltung
 - 🚀 Automatisches Install-Script mit DB-Setup
+
+## Deployment
+
+### Erststart (einmalig)
+```bash
+npm install -g pm2
+cd ~/metin2-web
+chmod +x scripts/deploy.sh
+bash scripts/deploy.sh
+pm2 startup   # Ausgabe als root ausführen für Autostart
+```
+
+### Updates deployen
+```bash
+bash ~/metin2-web/scripts/deploy.sh
+```

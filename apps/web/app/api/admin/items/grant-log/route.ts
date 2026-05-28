@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
     const total = await cmsDb.adminItemGrant.count({ where })
 
     // 7. Admin-Namen auflösen
-    const adminIds = Array.from(new Set(logs.map(l => l.adminId)))
+    const adminIds = Array.from(new Set(logs.map(l => l.adminId).filter((id): id is string => id !== null)))
     const admins = await cmsDb.user.findMany({
       where: { id: { in: adminIds } },
       select: { id: true, name: true, email: true }
@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
     // 9. Logs anreichern
     const enrichedLogs = logs.map(l => ({
       ...l,
-      admin: adminMap.get(l.adminId) || { name: "Unbekannt" },
+      admin: (l.adminId ? adminMap.get(l.adminId) : null) || { name: "Unbekannt" },
       accountName: accountMap.get(l.accountId) || `ID: ${l.accountId}`
     }))
 

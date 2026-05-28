@@ -20,6 +20,31 @@ const navItems = [
 export function Topbar({ serverName }: TopbarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const [balance, setBalance] = React.useState<{ dr: number; dm: number } | null>(null)
+
+  const fetchBalance = React.useCallback(async () => {
+    try {
+      const res = await fetch('/api/coins/balance')
+      if (res.ok) {
+        const data = await res.json()
+        setBalance(data)
+      }
+    } catch (err) {
+      console.error('Error fetching balance:', err)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (session?.user) {
+      fetchBalance()
+    }
+  }, [session, fetchBalance])
+
+  React.useEffect(() => {
+    const handleUpdate = () => fetchBalance()
+    window.addEventListener('coin-balance-update', handleUpdate)
+    return () => window.removeEventListener('coin-balance-update', handleUpdate)
+  }, [fetchBalance])
 
   return (
     <header className="h-16 flex items-center justify-between px-6 md:px-8 bg-[#0a0b0f]/95 backdrop-blur-[12px] border-b border-[var(--color-border)] sticky top-0 z-30 shrink-0 shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
@@ -64,6 +89,18 @@ export function Topbar({ serverName }: TopbarProps) {
       <div className="flex items-center gap-4">
         {session?.user ? (
           <div className="flex items-center gap-4">
+            {/* Coins Widget */}
+            {balance && (
+              <div className="flex items-center gap-3 bg-surface-2/65 px-3 py-1 rounded border border-border/10 text-xs font-display">
+                <span className="text-primary flex items-center gap-1">
+                  💰 <span className="font-bold text-text">{balance.dr.toLocaleString()}</span> DR
+                </span>
+                <span className="text-accent flex items-center gap-1 border-l border-border/20 pl-2">
+                  💎 <span className="font-bold text-text">{balance.dm.toLocaleString()}</span> DM
+                </span>
+              </div>
+            )}
+
             {/* User Profile Info */}
             <span className="text-xs font-semibold text-text truncate max-w-[120px] font-display">
               {session.user.name || session.user.email}

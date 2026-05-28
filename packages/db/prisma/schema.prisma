@@ -90,11 +90,12 @@ enum NewsCategory {
 // Item Shop
 // ============================================================
 model ShopCategory {
-  id    String     @id @default(cuid())
-  name  String
-  icon  String?
-  order Int        @default(0)
-  items ShopItem[]
+  id     String     @id @default(cuid())
+  name   String
+  icon   String?
+  order  Int        @default(0)
+  active Boolean    @default(true)
+  items  ShopItem[]
 
   @@map("shop_categories")
 }
@@ -112,6 +113,9 @@ model ShopItem {
   enabled        Boolean       @default(true)
   categoryId     String
   category       ShopCategory  @relation(fields: [categoryId], references: [id])
+  count          Int           @default(1)
+  defaultEnchants Json?
+  order          Int           @default(0)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -226,15 +230,22 @@ model ItemTransfer {
 }
 
 model AdminItemGrant {
-  id             String       @id @default(cuid())
-  adminId        String
+  id             String        @id @default(cuid())
+  adminId        String?
   accountId      Int
-  itemTemplateId String
-  itemTemplate   ItemTemplate @relation(fields: [itemTemplateId], references: [id], onDelete: Restrict)
-  count          Int          @default(1)
-  destination    String       @default("web")
-  note           String?      @db.Text
-  grantedAt      DateTime     @default(now())
+  itemTemplateId String?
+  itemTemplate   ItemTemplate? @relation(fields: [itemTemplateId], references: [id], onDelete: Restrict)
+  count          Int           @default(1)
+  destination    String        @default("web")
+  note           String?       @db.Text
+  grantedAt      DateTime      @default(now())
+  
+  characterName  String?
+  itemVnum       Int?
+  itemCount      Int           @default(1)
+  enchants       Json?
+  status         String        @default("PENDING")
+  grantedBy      String        @default("ADMIN")
 
   @@map("admin_item_grants")
 }
@@ -251,4 +262,39 @@ model WebStorageTrash {
   expiresAt  DateTime
 
   @@map("web_storage_trash")
+}
+
+model CoinBalance {
+  id          String   @id @default(cuid())
+  accountId   Int      @unique
+  dr          Int      @default(0)
+  dm          Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@map("coin_balances")
+}
+
+model CoinTransaction {
+  id          String            @id @default(cuid())
+  accountId   Int
+  type        CoinType
+  amount      Int
+  reason      TransactionReason
+  description String?
+  createdAt   DateTime          @default(now())
+
+  @@map("coin_transactions")
+}
+
+enum CoinType {
+  DR
+  DM
+}
+
+enum TransactionReason {
+  ADMIN_GRANT
+  PURCHASE
+  SHOP_BUY
+  DM_CASHBACK
+  ADMIN_DEDUCT
 }

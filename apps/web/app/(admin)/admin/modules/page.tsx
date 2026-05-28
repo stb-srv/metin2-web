@@ -1,5 +1,6 @@
 import { cmsDb } from "@/lib/cms-db"
 import { ModulesList } from "./ModulesList"
+import { DmCashbackSetting } from "./DmCashbackSetting"
 
 export const dynamic = "force-dynamic"
 
@@ -7,6 +8,12 @@ export default async function AdminModulesPage() {
   const modules = await cmsDb.module.findMany({
     orderBy: { order: 'asc' }
   })
+
+  // DM Cashback Einstellung laden
+  const cashbackSetting = await cmsDb.setting.findUnique({
+    where: { key: "dm_cashback_percent" }
+  })
+  const initialCashback = cashbackSetting?.value || "0"
 
   // Prisma return types mapen für Client Component
   const serializedModules = modules.map(m => ({
@@ -17,13 +24,16 @@ export default async function AdminModulesPage() {
   }))
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-display font-bold text-primary tracking-widest uppercase">Module Verwaltung</h1>
         <p className="text-text-muted">Aktiviere oder deaktiviere installierte Systeme. Änderungen sind sofort für Benutzer wirksam.</p>
       </div>
-      
-      <ModulesList initialModules={serializedModules} />
+
+      <div className="grid gap-6">
+        <ModulesList initialModules={serializedModules} />
+        <DmCashbackSetting initialValue={initialCashback} />
+      </div>
     </div>
   )
 }
