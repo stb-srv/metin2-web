@@ -1,11 +1,12 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { StatusDot } from "@/components/ui/status-dot"
 import { ModuleErrorBoundary } from "@/lib/module-loader"
+import TopRankingPreview from "./components/TopRankingPreview"
 
 type RankingPlayer = {
   rank: number
@@ -160,7 +161,7 @@ function RankingsContent() {
 
 export default function RankingsModule() {
   return (
-    <ModuleErrorBoundary>
+    <ModuleErrorBoundary moduleId="rankings">
       <Suspense
         fallback={
           <div className="bg-surface border border-border rounded-lg p-6 animate-pulse space-y-3">

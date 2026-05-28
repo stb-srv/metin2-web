@@ -1,3 +1,5 @@
+"use client"
+
 /**
  * Module Loader
  * Lädt Module mit Error Boundary Isolation

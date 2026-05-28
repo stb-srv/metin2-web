@@ -1,10 +1,12 @@
+"use client"
+
 import { Suspense } from 'react'
 import { ModuleErrorBoundary } from '@/lib/module-loader'
 import ServerStatusWidget from './components/ServerStatusWidget'
 
 export default function ServerStatusModule() {
   return (
-    <ModuleErrorBoundary>
+    <ModuleErrorBoundary moduleId="server-status">
       <Suspense
         fallback={
           <div className="bg-surface border border-border rounded-lg p-6 animate-pulse">

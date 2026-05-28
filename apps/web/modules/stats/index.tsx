@@ -1,10 +1,12 @@
+"use client"
+
 import { Suspense } from 'react'
 import { ModuleErrorBoundary } from '@/lib/module-loader'
 import StatsBar from './components/StatsBar'
 
 export default function StatsModule() {
   return (
-    <ModuleErrorBoundary>
+    <ModuleErrorBoundary moduleId="stats">
       <Suspense
         fallback={
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
