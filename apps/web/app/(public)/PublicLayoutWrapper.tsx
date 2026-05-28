@@ -12,11 +12,23 @@ interface PublicLayoutWrapperProps {
 export function PublicLayoutWrapper({ children, sidebar, topbar }: PublicLayoutWrapperProps) {
   const pathname = usePathname()
   const isAuthPage = pathname === "/login" || pathname === "/register"
+  const isLandingPage = pathname === "/"
 
   if (isAuthPage) {
     return (
       <div className="min-h-screen w-full bg-bg flex items-center justify-center p-4">
         {children}
+      </div>
+    )
+  }
+
+  if (isLandingPage) {
+    return (
+      <div className="flex flex-col min-h-screen bg-bg">
+        {topbar}
+        <main className="flex-1 flex flex-col">
+          {children}
+        </main>
       </div>
     )
   }

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { ThemeConfig, applyTheme, getSavedThemeId } from '@/lib/theme-engine'
+import { SessionProvider } from 'next-auth/react'
 
 interface ThemeContextType {
   activeTheme: ThemeConfig | null
@@ -54,9 +55,11 @@ export function ThemeProvider({
   }
 
   return (
-    <ThemeContext.Provider value={{ activeTheme, setTheme }}>
-      {children}
-    </ThemeContext.Provider>
+    <SessionProvider>
+      <ThemeContext.Provider value={{ activeTheme, setTheme }}>
+        {children}
+      </ThemeContext.Provider>
+    </SessionProvider>
   )
 }
 
