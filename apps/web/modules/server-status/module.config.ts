@@ -1,8 +1,10 @@
-import { ModuleConfig } from "@/lib/module-loader"
+import type { ModuleConfig } from '@/types/module'
 
-export const serverStatusConfig: ModuleConfig = {
-  id: "server-status",
-  name: "Server Status",
+const config: ModuleConfig = {
+  id: 'server-status',
+  name: 'Server Status',
+  description: 'Zeigt den aktuellen Status aller Server-Channels',
   enabled: true,
-  version: "1.0.0",
 }
+
+export default config

@@ -1,9 +1,9 @@
 import type { ModuleConfig } from '@/types/module'
 
 const config: ModuleConfig = {
-  id: 'news',
-  name: 'News',
-  description: 'Zeigt die neuesten Ankündigungen und Events',
+  id: 'stats',
+  name: 'Live Stats',
+  description: 'Zeigt Live-Statistiken aus der Spieldatenbank',
   enabled: true,
 }
 

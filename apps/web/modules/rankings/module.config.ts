@@ -1,8 +1,10 @@
-import { ModuleConfig } from "@/lib/module-loader"
+import type { ModuleConfig } from '@/types/module'
 
-export const rankingsConfig: ModuleConfig = {
-  id: "rankings",
-  name: "Rangliste",
+const config: ModuleConfig = {
+  id: 'rankings',
+  name: 'Rankings',
+  description: 'Spieler- und Gilden-Rankings',
   enabled: true,
-  version: "1.0.0",
 }
+
+export default config

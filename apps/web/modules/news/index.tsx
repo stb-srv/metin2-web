@@ -1,21 +1,20 @@
 import { Suspense } from 'react'
 import { ModuleErrorBoundary } from '@/lib/module-loader'
-import TopRankingPreview from './components/TopRankingPreview'
+import NewsWidget from './components/NewsWidget'
 
-export default function RankingsModule() {
+export default function NewsModule() {
   return (
     <ModuleErrorBoundary>
       <Suspense
         fallback={
           <div className="bg-surface border border-border rounded-lg p-6 animate-pulse space-y-3">
-            <div className="h-4 bg-surface-2 rounded w-1/3" />
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-8 bg-surface-2 rounded" />
-            ))}
+            <div className="h-4 bg-surface-2 rounded w-1/4" />
+            <div className="h-4 bg-surface-2 rounded" />
+            <div className="h-4 bg-surface-2 rounded" />
           </div>
         }
       >
-        <TopRankingPreview />
+        <NewsWidget />
       </Suspense>
     </ModuleErrorBoundary>
   )
