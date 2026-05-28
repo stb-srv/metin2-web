@@ -4,7 +4,6 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
-import { User, LogOut, ShieldAlert } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface TopbarProps {
@@ -12,11 +11,10 @@ interface TopbarProps {
 }
 
 const navItems = [
-  { name: "Startseite", href: "/" },
   { name: "Dashboard", href: "/dashboard" },
-  { name: "Rangliste", href: "/rankings" },
-  { name: "News", href: "/news" },
-  { name: "Item-Shop", href: "/itemshop" },
+  { name: "Rankings", href: "/rankings" },
+  { name: "Item Shop", href: "/itemshop" },
+  { name: "Web-Lager", href: "/storage" },
 ]
 
 export function Topbar({ serverName }: TopbarProps) {
@@ -24,7 +22,7 @@ export function Topbar({ serverName }: TopbarProps) {
   const { data: session } = useSession()
 
   return (
-    <header className="h-16 flex items-center justify-between px-6 md:px-8 bg-bg/75 backdrop-blur-md border-b border-primary/20 sticky top-0 z-30 shrink-0 shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+    <header className="h-16 flex items-center justify-between px-6 md:px-8 bg-[#0a0b0f]/95 backdrop-blur-[12px] border-b border-[var(--color-border)] sticky top-0 z-30 shrink-0 shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
       
       {/* Left: Logo / Mobile Spacer */}
       <div className="flex items-center gap-4">
@@ -52,7 +50,7 @@ export function Topbar({ serverName }: TopbarProps) {
               className={cn(
                 "h-full flex items-center px-1 border-b-2 font-display text-xs lg:text-sm tracking-widest uppercase transition-all duration-300",
                 isActive 
-                  ? "border-primary text-primary font-bold drop-shadow-[0_0_6px_var(--color-primary)]" 
+                  ? "border-primary text-primary font-bold shadow-[0_2px_8px_var(--color-glow)] drop-shadow-[0_0_6px_var(--color-primary)]" 
                   : "border-transparent text-text-muted hover:text-text"
               )}
             >
@@ -66,46 +64,26 @@ export function Topbar({ serverName }: TopbarProps) {
       <div className="flex items-center gap-4">
         {session?.user ? (
           <div className="flex items-center gap-4">
-            {/* User Profile Card */}
-            <Link 
-              href="/profile" 
-              className="flex items-center gap-3 pl-4 border-l border-border/20 group hover:opacity-95"
-            >
-              <div className="flex flex-col items-end text-right">
-                <span className="text-xs font-semibold text-text group-hover:text-primary transition-colors truncate max-w-[120px]">
-                  {session.user.name || session.user.email}
-                </span>
-                <span className="text-[10px] text-primary/80 font-display uppercase tracking-widest">
-                  {session.user.role === "ADMIN" ? "Admin" : `Acc-ID: ${session.user.accountId}`}
-                </span>
-              </div>
-              <div className="h-9 w-9 rounded-full bg-surface-2 border border-border flex items-center justify-center overflow-hidden transition-all group-hover:border-primary/50">
-                <User className="h-4.5 w-4.5 text-text-muted group-hover:text-primary transition-colors" />
-              </div>
-            </Link>
-
+            {/* User Profile Info */}
+            <span className="text-xs font-semibold text-text truncate max-w-[120px] font-display">
+              {session.user.name || session.user.email}
+            </span>
+            
             {/* Logout Button */}
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="p-2 text-text-muted hover:text-danger hover:bg-danger/10 border border-transparent hover:border-danger/20 rounded-md transition-all duration-200"
-              title="Abmelden"
+              className="px-3.5 py-1.5 text-xs uppercase tracking-wider font-display font-medium text-text-muted hover:text-text border border-border/20 rounded hover:bg-surface-2/40 transition-all"
             >
-              <LogOut className="h-4 w-4" />
+              Abmelden
             </button>
           </div>
         ) : (
           <div className="flex items-center gap-3">
             <Link 
               href="/login" 
-              className="px-3.5 py-1.5 text-xs uppercase tracking-wider font-display font-medium text-text-muted hover:text-text border border-border/20 rounded hover:bg-surface-2/40 transition-all"
-            >
-              Login
-            </Link>
-            <Link 
-              href="/register" 
               className="px-4 py-1.5 text-xs uppercase tracking-wider font-display font-bold text-bg bg-primary border border-primary hover:bg-primary/90 hover:shadow-[0_0_10px_var(--color-glow)] rounded transition-all"
             >
-              Register
+              Anmelden
             </Link>
           </div>
         )}

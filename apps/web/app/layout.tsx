@@ -48,6 +48,9 @@ export default async function RootLayout({
   return (
     <html lang="de" data-theme={themeId} className={`${inter.variable} ${cinzel.variable}`}>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet" />
         {themeCss && <style dangerouslySetInnerHTML={{ __html: themeCss }} />}
       </head>
       <body>

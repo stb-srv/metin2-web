@@ -30,47 +30,17 @@ export async function GET(
 
       const player = playerResult[0]
 
-      // Query server rank (level ranking position)
-      const rankResult = await gameDb.$queryRawUnsafe<any[]>(
-        `SELECT COUNT(*) as rankCount
-         FROM player
-         WHERE level > ? OR (level = ? AND exp > ?)`,
-        Number(player.level || 0),
-        Number(player.level || 0),
-        Number(player.exp || 0)
-      )
-
-      const rank = Number(rankResult[0]?.rankCount || 0) + 1
-
-      // Format response data
       const responseData = {
-        id: player.id,
-        name: player.name,
-        level: player.level,
-        job: player.job,
-        empire: player.empire,
-        guild_name: player.guild_name || null,
-        playtime: player.playtime || 0,
-        alignment: player.alignment || 0,
-        hp: player.hp || 0,
-        mp: player.mp || 0,
-        st: player.st || 0, // stamina/sp
-        ht: player.ht || 0, // health/con
-        dx: player.dx || 0, // dexterity
-        iq: player.iq || 0, // intelligence
-        str: player.str || 0, // strength
-        exp: player.exp || 0,
-        gold: player.gold || 0,
-        status: player.playtime % 3 === 0 ? 'online' : 'offline', // dynamic placeholder/heuristic for status
-        rank
+        ...player,
+        hp_max: player.hp_max ?? player.max_hp ?? player.hp ?? 0,
+        sp_max: player.sp_max ?? player.max_sp ?? player.sp ?? player.mp ?? 0,
       }
 
-      return NextResponse.json({ character: responseData })
+      return NextResponse.json(responseData)
 
     } catch (dbError) {
       console.warn('GameDB access error, using fallback data for character:', decodedName, dbError)
       
-      // Determine class / stats based on standard rules for mock presentation
       const hash = decodedName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
       const job = hash % 8
       const empire = (hash % 3) + 1
@@ -85,6 +55,8 @@ export async function GET(
         guild_name: hash % 3 === 0 ? `Guild_${hash % 5}` : null,
         playtime: 5000 + (hash % 10000),
         alignment: 10000 + (hash % 10000),
+        hp_max: 15000 + (hash % 5000),
+        sp_max: 4000 + (hash % 3000),
         hp: 15000 + (hash % 5000),
         mp: 4000 + (hash % 3000),
         st: 80 + (hash % 20),
@@ -94,11 +66,10 @@ export async function GET(
         str: 85 + (hash % 25),
         exp: (hash % 2000000),
         gold: 12000000 + (hash % 50000000),
-        status: hash % 2 === 0 ? 'online' : 'offline',
-        rank: (hash % 100) + 1
+        logoff_time: hash % 2 === 0 ? 0 : Math.floor(Date.now() / 1000) - (hash % 100000)
       }
 
-      return NextResponse.json({ character: mockCharacter })
+      return NextResponse.json(mockCharacter)
     }
 
   } catch (error) {

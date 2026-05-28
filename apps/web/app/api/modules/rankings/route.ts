@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
       if (type === 'level') {
         const query = `
           SELECT p.id, p.name, p.level, p.job, p.empire,
-                 g.name as guild_name, a.login
+                 g.name as guild_name, a.login as account_name
           FROM player p
           JOIN account a ON p.account_id = a.id
           LEFT JOIN guild g ON p.guild_id = g.id
@@ -58,8 +58,8 @@ export async function GET(req: NextRequest) {
           job: p.job,
           empire: p.empire,
           guild_name: p.guild_name || null,
-          login: p.login,
-          status: 'offline' // dynamically queried status could be added here
+          account_name: p.account_name,
+          status: 'offline'
         }))
         
         total = Number(countResult[0]?.count || 0)
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
       } else if (type === 'pvp') {
         const query = `
           SELECT p.id, p.name, p.level, p.job, p.empire, p.alignment,
-                 g.name as guild_name, a.login
+                 g.name as guild_name, a.login as account_name
           FROM player p
           JOIN account a ON p.account_id = a.id
           LEFT JOIN guild g ON p.guild_id = g.id
@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
           job: p.job,
           empire: p.empire,
           guild_name: p.guild_name || null,
-          login: p.login,
+          account_name: p.account_name,
           alignment: p.alignment,
           status: 'offline'
         }))

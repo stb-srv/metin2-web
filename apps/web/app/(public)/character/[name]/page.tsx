@@ -18,7 +18,6 @@ import {
   User, 
   Users, 
   Trophy, 
-  Compass,
   ArrowLeft
 } from "lucide-react"
 
@@ -31,8 +30,8 @@ type CharacterDetails = {
   guild_name: string | null
   playtime: number
   alignment: number
-  hp: number
-  mp: number
+  hp_max: number
+  sp_max: number
   st: number // stamina
   ht: number // health/con
   dx: number // dexterity
@@ -40,14 +39,14 @@ type CharacterDetails = {
   str: number // strength
   exp: number
   gold: number
-  status: "online" | "offline"
-  rank: number
+  logoff_time: number
 }
 
 export default function CharacterPage({ params }: { params: Promise<{ name: string }> }) {
   const router = useRouter()
   const { name } = use(params)
   const [character, setCharacter] = useState<CharacterDetails | null>(null)
+  const [serverRank, setServerRank] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -61,7 +60,7 @@ export default function CharacterPage({ params }: { params: Promise<{ name: stri
         return res.json()
       })
       .then(d => {
-        setCharacter(d.character)
+        setCharacter(d)
         setLoading(false)
       })
       .catch(err => {
@@ -71,25 +70,46 @@ export default function CharacterPage({ params }: { params: Promise<{ name: stri
       })
   }, [name])
 
+  useEffect(() => {
+    fetch('/api/modules/rankings?type=level&limit=1000')
+      .then(res => {
+        if (!res.ok) throw new Error()
+        return res.json()
+      })
+      .then(d => {
+        const rankings = d.rankings || []
+        const decodedName = decodeURIComponent(name)
+        const idx = rankings.findIndex((r: any) => r.name.toLowerCase() === decodedName.toLowerCase())
+        if (idx !== -1) {
+          setServerRank(idx + 1)
+        } else {
+          setServerRank(null)
+        }
+      })
+      .catch(err => {
+        console.error("Error fetching rank:", err)
+      })
+  }, [name])
+
   const getJobDetails = (job: number) => {
     const jobs: Record<number, { name: string; gender: string }> = {
       0: { name: "Krieger", gender: "Männlich" },
-      4: { name: "Krieger", gender: "Weiblich" },
-      1: { name: "Assassine", gender: "Weiblich" },
-      5: { name: "Assassine", gender: "Männlich" },
-      2: { name: "Sura", gender: "Männlich" },
-      6: { name: "Sura", gender: "Weiblich" },
-      3: { name: "Schamane", gender: "Weiblich" },
-      7: { name: "Schamane", gender: "Männlich" }
+      1: { name: "Krieger", gender: "Weiblich" },
+      2: { name: "Ninja", gender: "Männlich" },
+      3: { name: "Ninja", gender: "Weiblich" },
+      4: { name: "Sura", gender: "Männlich" },
+      5: { name: "Sura", gender: "Weiblich" },
+      6: { name: "Schamane", gender: "Männlich" },
+      7: { name: "Schamane", gender: "Weiblich" }
     }
     return jobs[job] || { name: "Lykaner", gender: "Unbekannt" }
   }
 
   const getEmpireDetails = (empire: number) => {
     switch (empire) {
-      case 1: return { name: "Shinsoo", color: "text-danger", border: "border-danger/30" }
-      case 2: return { name: "Chunjo", color: "text-warning", border: "border-warning/30" }
-      case 3: return { name: "Jinno", color: "text-accent", border: "border-accent/30" }
+      case 1: return { name: "Shinsoo", color: "text-[#e74c3c]", border: "border-[#e74c3c]/30" }
+      case 2: return { name: "Chunjo", color: "text-[#f1c40f]", border: "border-[#f1c40f]/30" }
+      case 3: return { name: "Jinno", color: "text-[#3498db]", border: "border-[#3498db]/30" }
       default: return { name: "Unbekannt", color: "text-text", border: "border-border/30" }
     }
   }
@@ -129,7 +149,6 @@ export default function CharacterPage({ params }: { params: Promise<{ name: stri
   const jobInfo = getJobDetails(character.job)
   const empireInfo = getEmpireDetails(character.empire)
   const alignmentInfo = getAlignmentDetails(character.alignment)
-  const playtimeHours = Math.round(character.playtime / 60)
 
   return (
     <div className="space-y-6">
@@ -154,9 +173,9 @@ export default function CharacterPage({ params }: { params: Promise<{ name: stri
             </div>
             <CardTitle className="font-display text-2xl text-text tracking-wide mb-1">{character.name}</CardTitle>
             <div className="flex justify-center gap-2 mt-2">
-              <Badge variant={character.status === "online" ? "success" : "default"}>
-                <StatusDot status={character.status} className="mr-1.5" />
-                {character.status === "online" ? "Online" : "Offline"}
+              <Badge variant={character.logoff_time === 0 ? "success" : "default"}>
+                <StatusDot status={character.logoff_time === 0 ? "online" : "offline"} className="mr-1.5" />
+                {character.logoff_time === 0 ? "Online" : "Offline"}
               </Badge>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${empireInfo.border} ${empireInfo.color} bg-surface-2/40`}>
                 {empireInfo.name}
@@ -174,21 +193,26 @@ export default function CharacterPage({ params }: { params: Promise<{ name: stri
                 <span className="font-display text-primary font-bold text-lg">{character.level}</span>
               </div>
               <div className="flex justify-between items-center text-sm border-b border-border/10 pb-2">
+                <span className="text-text-muted flex items-center"><Activity className="w-4 h-4 mr-2 text-primary" /> Erfahrung (EXP)</span>
+                <span className="font-semibold text-text">{character.exp.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm border-b border-border/10 pb-2">
                 <span className="text-text-muted flex items-center"><Users className="w-4 h-4 mr-2 text-primary" /> Gilde</span>
                 {character.guild_name ? (
-                  <Link 
-                    href={`/guild/${encodeURIComponent(character.guild_name)}`}
-                    className="font-semibold text-primary hover:underline transition-colors"
-                  >
+                  <span className="font-semibold text-primary">
                     {character.guild_name}
-                  </Link>
+                  </span>
                 ) : (
                   <span className="text-text-muted italic">Keine Gilde</span>
                 )}
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-text-muted flex items-center"><Clock className="w-4 h-4 mr-2 text-primary" /> Spielzeit</span>
-                <span className="font-semibold text-text">{playtimeHours} Std.</span>
+                <span className="text-text-muted flex items-center"><Clock className="w-4 h-4 mr-2 text-primary" /> Zuletzt online</span>
+                <span className="font-semibold text-text">
+                  {character.logoff_time === 0 
+                    ? "Jetzt online" 
+                    : new Date(character.logoff_time * 1000).toLocaleString('de-DE')}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -207,27 +231,29 @@ export default function CharacterPage({ params }: { params: Promise<{ name: stri
                 <div className="text-text-muted text-xs uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
                   <Heart className="w-3.5 h-3.5 text-danger" /> HP
                 </div>
-                <div className="font-display text-lg font-bold text-text">{character.hp.toLocaleString()}</div>
+                <div className="font-display text-lg font-bold text-text">{character.hp_max.toLocaleString()}</div>
               </div>
               <div className="bg-surface-2/65 p-3 rounded-lg border border-border/10 text-center">
                 <div className="text-text-muted text-xs uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
                   <Zap className="w-3.5 h-3.5 text-accent" /> MP
                 </div>
-                <div className="font-display text-lg font-bold text-text">{character.mp.toLocaleString()}</div>
+                <div className="font-display text-lg font-bold text-text">{character.sp_max.toLocaleString()}</div>
               </div>
               <div className="bg-surface-2/65 p-3 rounded-lg border border-border/10 text-center">
                 <div className="text-text-muted text-xs uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
-                  <Sword className="w-3.5 h-3.5 text-warning" /> Alignment
+                  <Sword className="w-3.5 h-3.5 text-warning" /> Angriff (Spielzeit)
                 </div>
                 <div className="font-display text-sm font-bold text-text truncate">
-                  {character.alignment.toLocaleString()}
+                  {character.playtime.toLocaleString()} Min.
                 </div>
               </div>
               <div className="bg-surface-2/65 p-3 rounded-lg border border-border/10 text-center">
                 <div className="text-text-muted text-xs uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
-                  <Award className="w-3.5 h-3.5 text-primary" /> Rang
+                  <Award className="w-3.5 h-3.5 text-primary" /> Server-Rang
                 </div>
-                <div className="font-display text-lg font-bold text-primary">#{character.rank}</div>
+                <div className="font-display text-lg font-bold text-primary">
+                  {serverRank !== null ? `#${serverRank}` : '—'}
+                </div>
               </div>
             </div>
 

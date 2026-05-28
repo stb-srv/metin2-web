@@ -6,26 +6,19 @@
 
 @layer base {
   :root {
-    --color-primary: #c8a84b;      /* Metin2 Gold */
-    --color-bg: #0a0b0f;           /* Deepest Black */
-    --color-surface: #111318;      /* Dark Surface */
-    --color-surface-2: #1b1e26;    /* Secondary Dark Surface */
-    --color-accent: #2a6dd9;       /* Link / Blue Accent */
-    --color-danger: #e05a3a;       /* Red Accent */
-    --color-success: #4caf50;      /* Green Accent */
-    --color-warning: #f59e0b;      /* Orange Accent */
-    --color-text: #e8dcc8;         /* Warm Creme */
-    --color-text-muted: #7a7060;   /* Muted Brown */
-    --color-border: #2a2d3a;       /* Subtle Border */
-    --color-glow: rgba(200, 168, 75, 0.15); /* Gold Glow */
-
-    /* Item Rarities */
-    --color-rare: #4a9eff;
-    --color-epic: #b24bff;
+    --color-bg:        #0a0b0f;
+    --color-surface:   #111318;
+    --color-border:    #2a2d3a;
+    --color-primary:   #c8a84b;
+    --color-glow:      rgba(200, 168, 75, 0.15);
+    --color-text:      #e8dcc8;
+    --color-muted:     #7a7060;
+    --color-rare:      #4a9eff;
+    --color-epic:      #b24bff;
     --color-legendary: #ff8c00;
 
     --font-display: 'Cinzel', serif;
-    --font-body: 'Crimson Text', serif;
+    --font-body:    'Crimson Text', serif;
 
     --radius-sm: 4px;
     --radius-md: 8px;
@@ -36,7 +29,7 @@
     background-color: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-body);
-    font-size: 1.125rem; /* Better readability for Crimson Text */
+    font-size: 1.125rem;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -47,25 +40,39 @@
 @layer components {
   .hex-icon {
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    background: var(--color-surface-2);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
   }
 
-  .legendary-glow {
-    animation: legendary-glow 2s infinite ease-in-out;
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 0 20px var(--color-glow);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+  .card:hover {
+    box-shadow: 0 0 40px var(--color-glow);
+    border-color: var(--color-primary);
+  }
+
+  .item-legendary {
+    animation: legendary-glow 2s ease-in-out infinite;
+  }
+
+  .item-rare {
+    box-shadow: 0 0 12px var(--color-rare);
+  }
+
+  .item-epic {
+    box-shadow: 0 0 12px var(--color-epic);
   }
 }
 
 /* Animations */
 @keyframes legendary-glow {
-  0%, 100% { 
-    box-shadow: 0 0 8px var(--color-legendary); 
-    border-color: rgba(255, 140, 0, 0.4);
-  }
-  50% { 
-    box-shadow: 0 0 24px var(--color-legendary), 0 0 48px rgba(255, 140, 0, 0.2); 
-    border-color: rgba(255, 140, 0, 0.8);
-  }
+  0%, 100% { box-shadow: 0 0 8px var(--color-legendary); }
+  50%       { box-shadow: 0 0 24px var(--color-legendary),
+                          0 0 48px rgba(255,140,0,0.3); }
 }
 
 /* Scrollbar Styling */

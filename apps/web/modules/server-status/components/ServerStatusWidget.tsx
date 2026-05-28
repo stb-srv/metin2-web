@@ -3,25 +3,11 @@
 import { useEffect, useState, useCallback } from 'react'
 
 interface Channel {
-  id: string
-  channel: string
+  channelId: string
+  name: string
   online: boolean
-  players: number
+  playerCount: number
   maxPlayers: number
-  load: 'LOW' | 'MEDIUM' | 'HIGH'
-  updatedAt: string
-}
-
-const loadColor: Record<string, string> = {
-  LOW: 'bg-success',
-  MEDIUM: 'bg-warning',
-  HIGH: 'bg-danger',
-}
-
-const loadWidth: Record<string, string> = {
-  LOW: 'w-1/3',
-  MEDIUM: 'w-2/3',
-  HIGH: 'w-full',
 }
 
 export default function ServerStatusWidget() {
@@ -75,46 +61,50 @@ export default function ServerStatusWidget() {
         Server Status
       </h2>
       <div className="space-y-3">
-        {channels.map((ch) => (
-          <div key={ch.id} className="flex items-center gap-3">
-            {/* Online-Indikator */}
-            <span
-              className={`shrink-0 w-2 h-2 rounded-full ${
-                ch.online
-                  ? 'bg-success shadow-[0_0_6px_var(--color-success)] animate-pulse'
-                  : 'bg-muted'
-              }`}
-            />
+        {channels.map((ch) => {
+          const loadPercent = Math.min(100, (ch.playerCount / ch.maxPlayers) * 100)
+          const loadColorClass = loadPercent >= 70 ? 'bg-danger' : loadPercent >= 30 ? 'bg-warning' : 'bg-success'
+          
+          return (
+            <div key={ch.channelId} className="flex items-center gap-3">
+              {/* Online-Indikator */}
+              <span
+                className={`shrink-0 w-2 h-2 rounded-full ${
+                  ch.online
+                    ? 'bg-success shadow-[0_0_6px_var(--color-success)] animate-pulse'
+                    : 'bg-muted'
+                }`}
+              />
 
-            {/* Channel-Name */}
-            <span className="text-text text-sm w-28 shrink-0">{ch.channel}</span>
+              {/* Channel-Name */}
+              <span className="text-text text-sm w-28 shrink-0">{ch.name}</span>
 
-            {/* Badge */}
-            <span
-              className={`text-xs px-2 py-0.5 rounded shrink-0 ${
-                ch.online ? 'bg-success/10 text-success' : 'bg-muted/10 text-muted'
-              }`}
-            >
-              {ch.online ? 'Online' : 'Offline'}
-            </span>
+              {/* Badge */}
+              <span
+                className={`text-xs px-2 py-0.5 rounded shrink-0 ${
+                  ch.online ? 'bg-success/10 text-success' : 'bg-muted/10 text-muted'
+                }`}
+              >
+                {ch.online ? 'Online' : 'Offline'}
+              </span>
 
-            {/* Spieleranzahl */}
-            <span className="text-muted text-xs shrink-0">
-              {ch.players}/{ch.maxPlayers}
-            </span>
+              {/* Spieleranzahl */}
+              <span className="text-muted text-xs shrink-0">
+                {ch.playerCount}/{ch.maxPlayers}
+              </span>
 
-            {/* Load-Bar */}
-            {ch.online && (
-              <div className="flex-1 h-1.5 bg-surface-2 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    loadWidth[ch.load] ?? 'w-0'
-                  } ${loadColor[ch.load] ?? 'bg-muted'}`}
-                />
-              </div>
-            )}
-          </div>
-        ))}
+              {/* Load-Bar */}
+              {ch.online && (
+                <div className="flex-1 h-1.5 bg-surface-2 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${loadColorClass}`}
+                    style={{ width: `${loadPercent}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )
+        })}
 
         {channels.length === 0 && (
           <p className="text-muted text-sm">Keine Channel-Daten verfügbar.</p>

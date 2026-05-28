@@ -36,7 +36,7 @@ function RankingsContent() {
   const [data, setData] = useState<any[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<"level" | "pvp" | "guild">("level")
+  const [activeTab, setActiveTab] = useState<"level" | "guild">("level")
   const [page, setPage] = useState(1)
   const limit = 50
 
@@ -55,32 +55,44 @@ function RankingsContent() {
       })
   }, [activeTab, page])
 
-  const handleTabChange = (tab: "level" | "pvp" | "guild") => {
+  const handleTabChange = (tab: "level" | "guild") => {
     setActiveTab(tab)
     setPage(1)
   }
 
   const getJobName = (job: number) => {
-    if (job === 0 || job === 4) return "Krieger"
-    if (job === 1 || job === 5) return "Assassine"
-    if (job === 2 || job === 6) return "Sura"
-    if (job === 3 || job === 7) return "Schamane"
-    return "Lykaner"
+    const jobs: Record<number, string> = {
+      0: 'Krieger',
+      1: 'Krieger(w)',
+      2: 'Ninja',
+      3: 'Ninja(w)',
+      4: 'Sura',
+      5: 'Sura(w)',
+      6: 'Schamane',
+      7: 'Schamane(w)',
+    }
+    return jobs[job] || 'Lykaner'
   }
 
   const getJobAbbreviation = (job: number) => {
-    if (job === 0 || job === 4) return "KR"
-    if (job === 1 || job === 5) return "AS"
-    if (job === 2 || job === 6) return "SU"
-    if (job === 3 || job === 7) return "SH"
-    return "LY"
+    const abbrev: Record<number, string> = {
+      0: 'KR',
+      1: 'KR(w)',
+      2: 'NJ',
+      3: 'NJ(w)',
+      4: 'SU',
+      5: 'SU(w)',
+      6: 'SM',
+      7: 'SM(w)',
+    }
+    return abbrev[job] || 'LY'
   }
 
   const getEmpireColor = (empire: number) => {
     switch (empire) {
-      case 1: return "text-danger" // Shinsoo (Rot)
-      case 2: return "text-warning" // Chunjo (Gelb)
-      case 3: return "text-accent" // Jinno (Blau)
+      case 1: return "text-[#e74c3c]" // Shinsoo (Rot)
+      case 2: return "text-[#f1c40f]" // Chunjo (Gelb)
+      case 3: return "text-[#3498db]" // Jinno (Blau)
       default: return "text-text"
     }
   }
@@ -122,15 +134,7 @@ function RankingsContent() {
               onClick={() => handleTabChange("level")}
               className={`font-display uppercase tracking-wider text-xs px-4 ${activeTab === "level" ? "bg-primary text-bg hover:bg-primary/90 font-bold shadow-none" : "text-text-muted hover:text-text"}`}
             >
-              Level
-            </Button>
-            <Button 
-              variant={activeTab === "pvp" ? "default" : "ghost"} 
-              size="sm"
-              onClick={() => handleTabChange("pvp")}
-              className={`font-display uppercase tracking-wider text-xs px-4 ${activeTab === "pvp" ? "bg-primary text-bg hover:bg-primary/90 font-bold shadow-none" : "text-text-muted hover:text-text"}`}
-            >
-              PvP (Rang)
+              Level-Ranking
             </Button>
             <Button 
               variant={activeTab === "guild" ? "default" : "ghost"} 
@@ -138,7 +142,7 @@ function RankingsContent() {
               onClick={() => handleTabChange("guild")}
               className={`font-display uppercase tracking-wider text-xs px-4 ${activeTab === "guild" ? "bg-primary text-bg hover:bg-primary/90 font-bold shadow-none" : "text-text-muted hover:text-text"}`}
             >
-              Gilden
+              Gilden-Ranking
             </Button>
           </div>
         </div>
@@ -163,7 +167,6 @@ function RankingsContent() {
                       <th className="p-4 w-20 text-center">Klasse</th>
                       <th className="p-4">Name</th>
                       <th className="p-4 text-center">Level</th>
-                      {activeTab === "pvp" && <th className="p-4 text-center">Rang-Punkte</th>}
                       <th className="p-4 text-center">Reich</th>
                       <th className="p-4 text-center">Status</th>
                     </>
@@ -185,7 +188,7 @@ function RankingsContent() {
                       className={`transition-colors border border-transparent ${getRankHighlight(player.rank)}`}
                     >
                       <td className="p-4 text-center font-display font-bold text-lg">
-                        {player.rank}
+                        {player.rank === 1 ? '🥇' : player.rank === 2 ? '🥈' : player.rank === 3 ? '🥉' : player.rank}
                       </td>
                       <td className="p-4">
                         <div className="flex justify-center">
@@ -204,23 +207,15 @@ function RankingsContent() {
                         {player.guild_name && (
                           <div className="text-xs text-text-muted mt-0.5">
                             Gilde:{" "}
-                            <Link 
-                              href={`/guild/${encodeURIComponent(player.guild_name)}`}
-                              className="text-primary/80 hover:text-primary transition-colors font-semibold"
-                            >
+                            <span className="text-primary/80 font-semibold">
                               [{player.guild_name}]
-                            </Link>
+                            </span>
                           </div>
                         )}
                       </td>
                       <td className="p-4 text-center font-display text-primary font-bold text-lg">
                         {player.level}
                       </td>
-                      {activeTab === "pvp" && (
-                        <td className="p-4 text-center font-display text-warning/90 font-semibold">
-                          {player.alignment?.toLocaleString() || "0"}
-                        </td>
-                      )}
                       <td className={`p-4 text-center font-bold font-display text-sm tracking-wide ${getEmpireColor(player.empire)}`}>
                         {getEmpireName(player.empire)}
                       </td>
@@ -241,15 +236,12 @@ function RankingsContent() {
                       className={`transition-colors border border-transparent ${getRankHighlight(guild.rank)}`}
                     >
                       <td className="p-4 text-center font-display font-bold text-lg">
-                        {guild.rank}
+                        {guild.rank === 1 ? '🥇' : guild.rank === 2 ? '🥈' : guild.rank === 3 ? '🥉' : guild.rank}
                       </td>
                       <td className="p-4">
-                        <Link 
-                          href={`/guild/${encodeURIComponent(guild.name)}`}
-                          className="font-medium text-text hover:text-primary transition-colors cursor-pointer font-display tracking-wide hover:underline decoration-primary/40 decoration-dotted text-lg"
-                        >
+                        <span className="font-medium text-text font-display tracking-wide text-lg">
                           {guild.name}
-                        </Link>
+                        </span>
                       </td>
                       <td className="p-4 text-center font-display text-primary font-bold text-lg">
                         {guild.level}

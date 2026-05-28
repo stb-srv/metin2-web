@@ -7,7 +7,7 @@ import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -19,14 +19,14 @@ export default function LoginPage() {
 
     const result = await signIn('credentials', {
       redirect: false,
-      email,
+      identifier,
       password,
     })
 
     setLoading(false)
 
     if (result?.error) {
-      setError('E-Mail oder Passwort falsch.')
+      setError('Ungültiger Benutzername/E-Mail oder Passwort')
       return
     }
 
@@ -50,15 +50,17 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-muted text-sm mb-1" htmlFor="email">
-                E-Mail
+              <label className="block text-muted text-sm mb-1" htmlFor="identifier">
+                Benutzername oder E-Mail
               </label>
               <input
-                id="email"
-                type="email"
+                id="identifier"
+                type="text"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="username"
+                placeholder="dein-name oder name@beispiel.de"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-text
                            focus:outline-none focus:border-primary focus:shadow-[0_0_8px_var(--color-glow)]
                            transition-all"

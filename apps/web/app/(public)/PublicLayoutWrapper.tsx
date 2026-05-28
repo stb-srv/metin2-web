@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import { ReactNode } from "react"
+import { useSession } from "next-auth/react"
 
 interface PublicLayoutWrapperProps {
   children: ReactNode
@@ -11,6 +12,8 @@ interface PublicLayoutWrapperProps {
 
 export function PublicLayoutWrapper({ children, sidebar, topbar }: PublicLayoutWrapperProps) {
   const pathname = usePathname()
+  const { status } = useSession()
+  
   const isAuthPage = pathname === "/login" || pathname === "/register"
   const isLandingPage = pathname === "/"
 
@@ -22,12 +25,16 @@ export function PublicLayoutWrapper({ children, sidebar, topbar }: PublicLayoutW
     )
   }
 
-  if (isLandingPage) {
+  const showSidebar = status === "authenticated"
+
+  if (isLandingPage || !showSidebar) {
     return (
       <div className="flex flex-col min-h-screen bg-bg">
         {topbar}
-        <main className="flex-1 flex flex-col">
-          {children}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+          <div className="mx-auto max-w-6xl">
+            {children}
+          </div>
         </main>
       </div>
     )
