@@ -1,297 +1,322 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
-import Link from "next/link"
-import { ShieldAlert, ShieldCheck, Loader2 } from "lucide-react"
+import { useState, useCallback } from 'react'
+import { signIn } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { z } from 'zod'
+
+// ── Zod Schema (Frontend-Validierung) ────────────────────────────
+const registerSchema = z
+  .object({
+    accountName: z
+      .string()
+      .min(4, 'Mindestens 4 Zeichen')
+      .max(16, 'Maximal 16 Zeichen')
+      .regex(/^[a-zA-Z0-9_]+$/, 'Nur Buchstaben, Zahlen und _ erlaubt'),
+    email: z.string().email('Ungültige E-Mail'),
+    password: z
+      .string()
+      .min(8, 'Mindestens 8 Zeichen')
+      .regex(/[0-9]/, 'Mindestens eine Zahl')
+      .regex(/[A-Z]/, 'Mindestens ein Großbuchstabe'),
+    passwordConfirm: z.string(),
+    deleteCode: z.string().regex(/^[0-9]{7}$/, 'Genau 7 Ziffern erforderlich'),
+    deleteCodeConfirm: z.string(),
+  })
+  .refine((d) => d.password === d.passwordConfirm, {
+    message: 'Passwörter stimmen nicht überein',
+    path: ['passwordConfirm'],
+  })
+  .refine((d) => d.deleteCode === d.deleteCodeConfirm, {
+    message: 'Löschcodes stimmen nicht überein',
+    path: ['deleteCodeConfirm'],
+  })
+
+type FormFields = z.infer<typeof registerSchema>
+type FieldErrors = Partial<Record<keyof FormFields, string>>
+
+function getPasswordStrength(pw: string): 'weak' | 'medium' | 'strong' {
+  let score = 0
+  if (pw.length >= 8) score++
+  if (/[A-Z]/.test(pw)) score++
+  if (/[0-9]/.test(pw)) score++
+  if (/[^a-zA-Z0-9]/.test(pw)) score++
+  if (score <= 1) return 'weak'
+  if (score === 2) return 'medium'
+  return 'strong'
+}
+
+const strengthLabel = { weak: 'Schwach', medium: 'Mittel', strong: 'Stark' }
+const strengthColor = {
+  weak: 'bg-danger',
+  medium: 'bg-warning',
+  strong: 'bg-success',
+}
+const strengthWidth = { weak: 'w-1/3', medium: 'w-2/3', strong: 'w-full' }
 
 export default function RegisterPage() {
   const router = useRouter()
-
-  const [accountName, setAccountName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [passwordConfirm, setPasswordConfirm] = useState("")
-
+  const [form, setForm] = useState<FormFields>({
+    accountName: '',
+    email: '',
+    password: '',
+    passwordConfirm: '',
+    deleteCode: '',
+    deleteCodeConfirm: '',
+  })
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [serverError, setServerError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  
-  // Validation States
-  const [valErrors, setValErrors] = useState<{
-    accountName?: string
-    email?: string
-    password?: string
-    passwordConfirm?: string
-  }>({})
 
-  // Password strength computation
-  const getPasswordStrength = () => {
-    if (!password) return { score: 0, label: "Ungültig", color: "bg-border/20" }
-    let score = 0
-    if (password.length >= 8) score++
-    if (/[0-9]/.test(password)) score++
-    if (/[A-Z]/.test(password)) score++
-    if (/[^A-Za-z0-9]/.test(password)) score++
+  const set = useCallback(
+    (field: keyof FormFields) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setForm((prev) => ({ ...prev, [field]: e.target.value }))
+      setFieldErrors((prev) => ({ ...prev, [field]: undefined }))
+    },
+    []
+  )
 
-    if (score <= 2) return { score, label: "Schwach", color: "bg-danger" }
-    if (score === 3) return { score, label: "Mittel", color: "bg-warning" }
-    return { score, label: "Stark", color: "bg-success" }
+  const onlyDigits = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const allowed = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight']
+    if (!allowed.includes(e.key) && !/^[0-9]$/.test(e.key)) e.preventDefault()
   }
 
-  const strength = getPasswordStrength()
+  const passwordStrength = getPasswordStrength(form.password)
 
-  // Validate form fields live
-  useEffect(() => {
-    const errors: typeof valErrors = {}
-
-    if (accountName) {
-      if (accountName.length < 4 || accountName.length > 16) {
-        errors.accountName = "Name muss zwischen 4 und 16 Zeichen lang sein."
-      } else if (!/^[a-zA-Z0-9_]+$/.test(accountName)) {
-        errors.accountName = "Nur Buchstaben, Zahlen und Unterstriche erlaubt."
-      }
-    }
-
-    if (email) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        errors.email = "Bitte gib eine gültige E-Mail-Adresse ein."
-      }
-    }
-
-    if (password) {
-      if (password.length < 8) {
-        errors.password = "Mindestens 8 Zeichen erforderlich."
-      } else if (!/[0-9]/.test(password)) {
-        errors.password = "Muss mindestens eine Zahl enthalten."
-      } else if (!/[A-Z]/.test(password)) {
-        errors.password = "Muss mindestens einen Großbuchstaben enthalten."
-      }
-    }
-
-    if (passwordConfirm && password !== passwordConfirm) {
-      errors.passwordConfirm = "Die Passwörter stimmen nicht überein."
-    }
-
-    setValErrors(errors)
-  }, [accountName, email, password, passwordConfirm])
-
-  const isFormValid = 
-    accountName && 
-    email && 
-    password && 
-    passwordConfirm && 
-    Object.keys(valErrors).length === 0
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!isFormValid) return
-    setError(null)
-    setLoading(true)
+    setServerError(null)
 
+    const parsed = registerSchema.safeParse(form)
+    if (!parsed.success) {
+      const errs: FieldErrors = {}
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] as keyof FormFields
+        if (key) errs[key] = issue.message
+      }
+      setFieldErrors(errs)
+      return
+    }
+
+    setLoading(true)
     try {
-      // 1. Account registrieren
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accountName, email, password, passwordConfirm }),
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsed.data),
       })
 
-      const data = await response.json()
+      const data: { error?: string; message?: string } = await res.json()
 
-      if (!response.ok) {
-        setError(data.error || "Registrierung fehlgeschlagen.")
+      if (!res.ok) {
+        setServerError(data.error ?? 'Registrierung fehlgeschlagen')
         setLoading(false)
         return
       }
 
-      // 2. Automatischer Login nach erfolgreicher Registrierung
-      const loginResult = await signIn("credentials", {
+      // Auto-Login nach Erfolg
+      await signIn('credentials', {
         redirect: false,
-        email,
-        password,
+        email: parsed.data.email,
+        password: parsed.data.password,
       })
-
-      if (loginResult?.error) {
-        setError("Account erstellt, aber automatischer Login fehlgeschlagen. Bitte melde dich manuell an.")
-        setLoading(false)
-      } else {
-        router.push("/dashboard")
-        router.refresh()
-      }
-    } catch (err) {
-      setError("Verbindung zum Server fehlgeschlagen.")
+      router.push('/dashboard')
+    } catch {
+      setServerError('Netzwerkfehler — bitte erneut versuchen')
       setLoading(false)
     }
   }
 
   return (
-    <div className="w-full max-w-md bg-surface border border-border/30 rounded-lg p-8 shadow-[0_0_40px_rgba(0,0,0,0.6),_0_0_20px_var(--color-glow)] backdrop-blur-md">
-      <div className="text-center mb-6">
-        <div className="mx-auto hex-icon w-16 h-16 flex items-center justify-center bg-primary/20 border border-primary/40 mb-4 shadow-[0_0_25px_var(--color-glow)]">
-          <span className="text-primary font-display font-bold text-2xl mt-1 select-none">M</span>
-        </div>
-        <h2 className="text-3xl font-display text-primary tracking-widest uppercase">
+    <div className="min-h-screen flex items-center justify-center bg-bg px-4 py-12">
+      <div className="w-full max-w-lg">
+        <h1 className="font-display text-primary text-3xl tracking-widest uppercase text-center mb-8">
           Registrieren
-        </h2>
-        <p className="text-xs text-muted mt-2 uppercase tracking-widest">
-          Erstelle deinen Spiel-Account
-        </p>
-      </div>
+        </h1>
 
-      {error && (
-        <div className="flex items-center gap-3 bg-danger/10 border border-danger/30 text-danger px-4 py-3 rounded text-sm mb-4">
-          <ShieldAlert className="h-5 w-5 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Account-Name */}
-        <div>
-          <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
-            Account-Name
-          </label>
-          <input
-            type="text"
-            required
-            disabled={loading}
-            value={accountName}
-            onChange={(e) => setAccountName(e.target.value)}
-            placeholder="z.B. Player123"
-            maxLength={16}
-            className={`w-full bg-surface-2 border rounded px-4 py-2.5 text-text placeholder-text-muted/30 focus:outline-none transition-all disabled:opacity-50 ${
-              valErrors.accountName 
-                ? "border-danger focus:border-danger focus:ring-1 focus:ring-danger/30" 
-                : "border-border/20 focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
-            }`}
-          />
-          <p className="text-[10px] text-text-muted mt-1">
-            Dieser Name wird dein Ingame-Loginname. (4-16 Zeichen, a-z, A-Z, 0-9, _)
-          </p>
-          {valErrors.accountName && (
-            <p className="text-xs text-danger mt-1">{valErrors.accountName}</p>
-          )}
-        </div>
-
-        {/* E-Mail */}
-        <div>
-          <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
-            E-Mail-Adresse
-          </label>
-          <input
-            type="email"
-            required
-            disabled={loading}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="beispiel@domain.de"
-            className={`w-full bg-surface-2 border rounded px-4 py-2.5 text-text placeholder-text-muted/30 focus:outline-none transition-all disabled:opacity-50 ${
-              valErrors.email 
-                ? "border-danger focus:border-danger focus:ring-1 focus:ring-danger/30" 
-                : "border-border/20 focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
-            }`}
-          />
-          {valErrors.email && (
-            <p className="text-xs text-danger mt-1">{valErrors.email}</p>
-          )}
-        </div>
-
-        {/* Passwort */}
-        <div>
-          <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
-            Passwort
-          </label>
-          <input
-            type="password"
-            required
-            disabled={loading}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            className={`w-full bg-surface-2 border rounded px-4 py-2.5 text-text placeholder-text-muted/30 focus:outline-none transition-all disabled:opacity-50 ${
-              valErrors.password 
-                ? "border-danger focus:border-danger focus:ring-1 focus:ring-danger/30" 
-                : "border-border/20 focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
-            }`}
-          />
-          {valErrors.password && (
-            <p className="text-xs text-danger mt-1">{valErrors.password}</p>
-          )}
-
-          {/* Password strength visual bar */}
-          {password && (
-            <div className="mt-2 space-y-1">
-              <div className="flex justify-between items-center text-[10px] text-text-muted">
-                <span>Passwort-Stärke:</span>
-                <span className={`font-bold ${
-                  strength.score <= 2 ? "text-danger" : strength.score === 3 ? "text-warning" : "text-success"
-                }`}>
-                  {strength.label}
-                </span>
-              </div>
-              <div className="h-1.5 w-full bg-surface-2 rounded-full overflow-hidden border border-border/10">
-                <div 
-                  className={`h-full transition-all duration-300 ${strength.color}`} 
-                  style={{ width: `${(strength.score / 4) * 100}%` }}
-                />
-              </div>
+        <div className="bg-surface border border-border rounded-lg shadow-[0_0_20px_var(--color-glow)] p-8">
+          {serverError && (
+            <div className="mb-6 p-3 rounded bg-danger/10 border border-danger text-danger text-sm">
+              {serverError}
             </div>
           )}
-        </div>
 
-        {/* Passwort bestätigen */}
-        <div>
-          <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
-            Passwort bestätigen
-          </label>
-          <input
-            type="password"
-            required
-            disabled={loading}
-            value={passwordConfirm}
-            onChange={(e) => setPasswordConfirm(e.target.value)}
-            placeholder="••••••••"
-            className={`w-full bg-surface-2 border rounded px-4 py-2.5 text-text placeholder-text-muted/30 focus:outline-none transition-all disabled:opacity-50 ${
-              valErrors.passwordConfirm 
-                ? "border-danger focus:border-danger focus:ring-1 focus:ring-danger/30" 
-                : "border-border/20 focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
-            }`}
-          />
-          {valErrors.passwordConfirm && (
-            <p className="text-xs text-danger mt-1">{valErrors.passwordConfirm}</p>
-          )}
-        </div>
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+            {/* Account-Name */}
+            <Field
+              id="accountName"
+              label="Account-Name"
+              hint="Dieser Name wird dein Ingame-Loginname"
+              type="text"
+              value={form.accountName}
+              onChange={set('accountName')}
+              error={fieldErrors.accountName}
+            />
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading || !isFormValid}
-          className="w-full relative bg-primary hover:bg-primary/80 text-bg py-3 px-4 rounded font-display tracking-widest font-bold uppercase transition-all shadow-[0_0_15px_var(--color-glow)] hover:shadow-[0_0_20px_var(--color-primary)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 overflow-hidden"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Registriere...</span>
-            </>
-          ) : (
-            <>
-              <ShieldCheck className="h-5 w-5" />
-              <span>Account erstellen</span>
-            </>
-          )}
-        </button>
+            {/* E-Mail */}
+            <Field
+              id="email"
+              label="E-Mail"
+              type="email"
+              value={form.email}
+              onChange={set('email')}
+              error={fieldErrors.email}
+            />
 
-        <div className="text-center pt-4 border-t border-border/10">
-          <span className="text-sm text-muted">Bereits registriert? </span>
-          <Link
-            href="/login"
-            className="text-sm text-primary hover:text-primary/80 hover:underline transition-all font-semibold"
-          >
-            Jetzt einloggen
-          </Link>
+            {/* Passwort */}
+            <div>
+              <Field
+                id="password"
+                label="Passwort"
+                type="password"
+                value={form.password}
+                onChange={set('password')}
+                error={fieldErrors.password}
+              />
+              {form.password.length > 0 && (
+                <div className="mt-2">
+                  <div className="h-1.5 w-full bg-surface-2 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        strengthWidth[passwordStrength]
+                      } ${strengthColor[passwordStrength]}`}
+                    />
+                  </div>
+                  <p className="text-xs text-muted mt-1">
+                    Stärke:{' '}
+                    <span
+                      className={
+                        passwordStrength === 'strong'
+                          ? 'text-success'
+                          : passwordStrength === 'medium'
+                          ? 'text-warning'
+                          : 'text-danger'
+                      }
+                    >
+                      {strengthLabel[passwordStrength]}
+                    </span>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Passwort bestätigen */}
+            <Field
+              id="passwordConfirm"
+              label="Passwort bestätigen"
+              type="password"
+              value={form.passwordConfirm}
+              onChange={set('passwordConfirm')}
+              error={fieldErrors.passwordConfirm}
+            />
+
+            {/* Löschcode */}
+            <Field
+              id="deleteCode"
+              label="Löschcode"
+              hint="7-stelliger Code zum Löschen von Items und Charakteren"
+              type="password"
+              inputMode="numeric"
+              maxLength={7}
+              value={form.deleteCode}
+              onChange={set('deleteCode')}
+              onKeyDown={onlyDigits}
+              error={fieldErrors.deleteCode}
+            />
+
+            {/* Löschcode bestätigen */}
+            <Field
+              id="deleteCodeConfirm"
+              label="Löschcode bestätigen"
+              type="password"
+              inputMode="numeric"
+              maxLength={7}
+              value={form.deleteCodeConfirm}
+              onChange={set('deleteCodeConfirm')}
+              onKeyDown={onlyDigits}
+              error={fieldErrors.deleteCodeConfirm}
+            />
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 rounded bg-primary text-bg font-display tracking-widest uppercase
+                         hover:shadow-[0_0_16px_var(--color-glow)] transition-all
+                         disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 rounded-full border-2 border-bg border-t-transparent animate-spin" />
+                  Wird registriert…
+                </>
+              ) : (
+                'Account erstellen'
+              )}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-muted text-sm">
+            Bereits registriert?{' '}
+            <Link href="/login" className="text-primary hover:underline">
+              Anmelden
+            </Link>
+          </p>
         </div>
-      </form>
+      </div>
+    </div>
+  )
+}
+
+// ── Wiederverwendbares Feld ───────────────────────────────────────
+interface FieldProps {
+  id: string
+  label: string
+  hint?: string
+  type?: string
+  inputMode?: 'numeric' | 'text' | 'email'
+  maxLength?: number
+  value: string
+  onChange: React.ChangeEventHandler<HTMLInputElement>
+  onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>
+  error?: string
+}
+
+function Field({
+  id,
+  label,
+  hint,
+  type = 'text',
+  inputMode,
+  maxLength,
+  value,
+  onChange,
+  onKeyDown,
+  error,
+}: FieldProps) {
+  return (
+    <div>
+      <label className="block text-muted text-sm mb-1" htmlFor={id}>
+        {label}
+      </label>
+      <input
+        id={id}
+        type={type}
+        inputMode={inputMode}
+        maxLength={maxLength}
+        value={value}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
+        className={`w-full bg-surface-2 border rounded px-3 py-2 text-text
+                    focus:outline-none transition-all
+                    ${
+                      error
+                        ? 'border-danger focus:shadow-[0_0_8px_var(--color-danger)]'
+                        : 'border-border focus:border-primary focus:shadow-[0_0_8px_var(--color-glow)]'
+                    }`}
+      />
+      {hint && !error && <p className="text-xs text-muted mt-1">{hint}</p>}
+      {error && <p className="text-xs text-danger mt-1">{error}</p>}
     </div>
   )
 }
